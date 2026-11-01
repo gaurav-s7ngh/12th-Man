@@ -33,7 +33,7 @@ def test_competitions():
     data = response.json()
     assert isinstance(data, list)
     assert len(data) >= 1
-    assert any(c["name"] == "UEFA Euro" for c in data)
+    assert any(c["name"] == "1. Bundesliga" for c in data)
 
 
 def test_teams():
@@ -41,7 +41,7 @@ def test_teams():
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) >= 20  # 24 Euro 2024 teams
+    assert len(data) == 18  # 18 Bundesliga teams
 
 
 def test_team_detail():
@@ -64,17 +64,17 @@ def test_players_pagination_and_search():
     assert data["page"] == 1
     assert data["page_size"] == 10
     assert len(data["items"]) == 10
-    assert data["total"] > 500
+    assert data["total"] >= 450
 
     # Search
-    search_res = client.get("/api/v1/players?search=Jude")
+    search_res = client.get("/api/v1/players?search=Wirtz")
     assert search_res.status_code == 200
     search_data = search_res.json()
-    assert any("Bellingham" in p["name"] for p in search_data["items"])
+    assert any("Florian" in p["name"] for p in search_data["items"])
 
 
 def test_player_detail_and_stats():
-    players_res = client.get("/api/v1/players?search=Yamal")
+    players_res = client.get("/api/v1/players?search=Wirtz")
     assert players_res.status_code == 200
     items = players_res.json()["items"]
     assert len(items) > 0
@@ -101,7 +101,7 @@ def test_matches_pagination():
     data = response.json()
     assert data["page"] == 1
     assert data["page_size"] == 10
-    assert data["total"] == 51  # 51 Euro 2024 matches
+    assert data["total"] == 34  # 34 Bundesliga matches
     assert len(data["items"]) == 10
 
     # Match detail
@@ -109,6 +109,21 @@ def test_matches_pagination():
     detail_res = client.get(f"/api/v1/matches/{match_id}")
     assert detail_res.status_code == 200
     assert detail_res.json()["id"] == match_id
+
+
+def test_bundesliga_competition_filtering():
+    # Verify Bundesliga competition exists and filters matches
+    comps_res = client.get("/api/v1/competitions")
+    assert comps_res.status_code == 200
+    comps = comps_res.json()
+    comp_names = [c["name"] for c in comps]
+    assert "1. Bundesliga" in comp_names
+
+    bundesliga = next(c for c in comps if c["name"] == "1. Bundesliga")
+
+    # Filter matches by competition
+    b_matches = client.get(f"/api/v1/matches?competition_id={bundesliga['id']}").json()
+    assert b_matches["total"] == 34
 
 
 def test_scouting_report_lifecycle():
@@ -143,8 +158,8 @@ def test_scouting_report_lifecycle():
 def test_shortlist_lifecycle():
     # Create shortlist
     sl_payload = {
-        "name": "Euro 2024 Breakout Talents",
-        "description": "High-priority targets identified during tournament",
+        "name": "Bundesliga Monitored Targets",
+        "description": "High-priority targets identified during 2023/24 league campaign",
         "owner": "Head of Recruitment",
     }
     sl_res = client.post("/api/v1/shortlists", json=sl_payload)

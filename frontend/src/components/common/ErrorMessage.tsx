@@ -1,29 +1,25 @@
 import React from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 interface ErrorMessageProps {
-  title?: string;
   message: string;
   onRetry?: () => void;
 }
 
-export const ErrorMessage: React.FC<ErrorMessageProps> = ({
-  title = "Failed to load data",
-  message,
-  onRetry,
-}) => {
+export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onRetry }) => {
   return (
-    <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center my-6">
-      <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-      <h3 className="text-sm font-semibold text-red-200 uppercase tracking-wide font-mono">{title}</h3>
-      <p className="text-xs text-red-400 mt-1 max-w-md mx-auto">{message}</p>
+    <div className="rounded-lg bg-[#0D1C15] border border-[#EF4444]/30 p-5 font-mono text-center max-w-lg mx-auto my-8">
+      <div className="flex items-center justify-center gap-2 text-[#EF4444] mb-2">
+        <AlertCircle className="h-4 w-4" />
+        <span className="text-xs font-bold uppercase tracking-wider">Telemetric Exception</span>
+      </div>
+      <p className="text-xs text-[#87958B] leading-relaxed mb-4">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-200 bg-red-900/50 hover:bg-red-800/60 rounded border border-red-700/50 transition cursor-pointer"
+          className="px-3 py-1.5 rounded bg-[#12251B] hover:bg-[#1D3025] text-[#E8EDE9] text-xs font-mono border border-[#1D3025] transition-colors cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Retry Request
+          Retry Connection
         </button>
       )}
     </div>

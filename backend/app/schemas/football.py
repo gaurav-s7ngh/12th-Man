@@ -27,6 +27,8 @@ class PlayerBase(BaseModel):
     preferred_foot: Optional[str] = None
     height: Optional[int] = None
     primary_position: Optional[str] = None
+    total_minutes: Optional[int] = None
+    current_team: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -161,6 +163,8 @@ class PlayerDetail(PlayerRead):
     total_minutes: int = 0
     teams: List[TeamRead] = []
     aggregated_stats: Optional[PlayerAggregatedStats] = None
+    competition_breakdowns: List[Dict[str, Any]] = []
+    sample_confidence: Optional[str] = None
 
 
 class TeamDetail(TeamRead):

@@ -23,8 +23,8 @@ class ScoutingReport(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    player_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
+    player_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("players.id", ondelete="SET NULL"), nullable=True, index=True
     )
     scout_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     position_assessed: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -82,8 +82,8 @@ class ShortlistPlayer(Base):
     shortlist_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("shortlists.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    player_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
+    player_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("players.id", ondelete="SET NULL"), nullable=True, index=True
     )
     added_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, nullable=False

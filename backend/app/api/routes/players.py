@@ -19,8 +19,18 @@ def get_players(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search player name"),
     position: Optional[str] = Query(None, description="Filter by position"),
+    role: Optional[str] = Query(None, description="Filter by tactical role"),
     nationality: Optional[str] = Query(None, description="Filter by nationality"),
+    preferred_foot: Optional[str] = Query(None, description="Filter by preferred foot (Right, Left, Both)"),
     team_id: Optional[uuid.UUID] = Query(None, description="Filter by team UUID"),
+    competition_id: Optional[uuid.UUID] = Query(None, description="Filter by competition UUID"),
+    season_id: Optional[uuid.UUID] = Query(None, description="Filter by season UUID"),
+    min_minutes: Optional[int] = Query(None, ge=0, description="Minimum total minutes played"),
+    max_minutes: Optional[int] = Query(None, ge=0, description="Maximum total minutes played"),
+    min_age: Optional[int] = Query(None, ge=14, le=45, description="Minimum age"),
+    max_age: Optional[int] = Query(None, ge=14, le=45, description="Maximum age"),
+    sort_by: Optional[str] = Query("name", description="Sort by field: name, minutes, goals, assists, position"),
+    sort_order: Optional[str] = Query("asc", description="Sort direction: asc or desc"),
     db: Session = Depends(get_db),
 ):
     service = PlayerService(db)
@@ -29,18 +39,30 @@ def get_players(
         page_size=page_size,
         search=search,
         position=position,
+        role=role,
         nationality=nationality,
+        preferred_foot=preferred_foot,
         team_id=team_id,
+        competition_id=competition_id,
+        season_id=season_id,
+        min_minutes=min_minutes,
+        max_minutes=max_minutes,
+        min_age=min_age,
+        max_age=max_age,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 
 @router.get("/{player_id}", response_model=PlayerDetail)
 def get_player(
     player_id: uuid.UUID,
+    competition_id: Optional[uuid.UUID] = Query(None, description="Filter stats by competition UUID"),
+    season_id: Optional[uuid.UUID] = Query(None, description="Filter stats by season UUID"),
     db: Session = Depends(get_db),
 ):
     service = PlayerService(db)
-    player = service.get_player_detail(player_id)
+    player = service.get_player_detail(player_id, competition_id=competition_id, season_id=season_id)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
     return player
@@ -49,13 +71,15 @@ def get_player(
 @router.get("/{player_id}/statistics")
 def get_player_statistics(
     player_id: uuid.UUID,
+    competition_id: Optional[uuid.UUID] = Query(None, description="Filter stats by competition UUID"),
+    season_id: Optional[uuid.UUID] = Query(None, description="Filter stats by season UUID"),
     db: Session = Depends(get_db),
 ):
     service = PlayerService(db)
     player = service.get_player_detail(player_id)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
-    return service.get_player_statistics(player_id)
+    return service.get_player_statistics(player_id, competition_id=competition_id, season_id=season_id)
 
 
 @router.get("/{player_id}/scouting-reports", response_model=list[ScoutingReportRead])

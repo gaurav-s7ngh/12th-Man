@@ -24,7 +24,7 @@ export const MatchesPage: React.FC = () => {
           Match Telemetry ({data?.total ?? 0} Fixtures)
         </h1>
         <p className="text-xs text-zinc-400 font-mono mt-0.5">
-          All 51 UEFA Euro 2024 matches with full event telemetry records
+          All 34 1. Bundesliga 2023/24 matches with full event telemetry records
         </p>
       </div>
 

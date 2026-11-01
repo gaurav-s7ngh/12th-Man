@@ -21,7 +21,7 @@ class ScoutingReportCreate(BaseModel):
 
 class ScoutingReportRead(BaseModel):
     id: uuid.UUID
-    player_id: uuid.UUID
+    player_id: Optional[uuid.UUID] = None
     scout_name: Optional[str] = None
     position_assessed: Optional[str] = None
     technical_rating: Optional[float] = None

@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 import uuid
 from sqlalchemy.orm import Session
 
-from app.models.football import Competition, Match
+from app.models.football import Competition, Match, Season
 from app.repositories.match import MatchRepository
 
 
@@ -45,3 +45,6 @@ class MatchService:
 
     def list_competitions(self) -> List[Competition]:
         return self.repo.list_competitions()
+
+    def list_seasons(self) -> List[Season]:
+        return self.repo.list_seasons()

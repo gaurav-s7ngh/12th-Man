@@ -10,14 +10,14 @@ def main():
     parser.add_argument(
         "--competition-id",
         type=int,
-        default=55,
-        help="StatsBomb competition ID (default: 55 for UEFA Euro)",
+        default=9,
+        help="StatsBomb competition ID (default: 9 for 1. Bundesliga)",
     )
     parser.add_argument(
         "--season-id",
         type=int,
-        default=282,
-        help="StatsBomb season ID (default: 282 for 2024)",
+        default=281,
+        help="StatsBomb season ID (default: 281 for 2023/2024)",
     )
     parser.add_argument(
         "--max-matches",

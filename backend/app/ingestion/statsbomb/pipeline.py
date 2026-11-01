@@ -77,7 +77,20 @@ class StatsBombIngestionPipeline:
         birth_date=None,
     ) -> uuid.UUID:
         if player_ext_id in self.player_cache:
-            return self.player_cache[player_ext_id]
+            p_uuid = self.player_cache[player_ext_id]
+            if primary_position or nationality:
+                existing = self.db.execute(select(Player).where(Player.id == p_uuid)).scalar_one_or_none()
+                if existing:
+                    updated = False
+                    if not existing.primary_position and primary_position:
+                        existing.primary_position = primary_position
+                        updated = True
+                    if not existing.nationality and nationality:
+                        existing.nationality = nationality
+                        updated = True
+                    if updated:
+                        self.db.flush()
+            return p_uuid
 
         existing = self.db.execute(
             select(Player).where(Player.external_id == str(player_ext_id))
@@ -158,12 +171,13 @@ class StatsBombIngestionPipeline:
 
         if not season:
             start_yr = int(season_name[:4]) if season_name[:4].isdigit() else None
+            end_yr = int(season_name[-4:]) if season_name[-4:].isdigit() else start_yr
             season = Season(
                 external_id=str(season_id),
                 competition_id=comp.id,
                 name=season_name,
                 start_year=start_yr,
-                end_year=start_yr,
+                end_year=end_yr,
             )
             self.db.add(season)
             self.db.flush()

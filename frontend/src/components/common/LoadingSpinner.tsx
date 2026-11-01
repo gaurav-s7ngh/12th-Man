@@ -1,5 +1,4 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -7,19 +6,21 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  message = "Loading intelligence data...",
+  message = "Accessing football telemetry...",
   size = "md",
 }) => {
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-6 h-6",
-    lg: "w-8 h-8",
-  };
+  const sizeClass = {
+    sm: "h-4 w-4 border-2",
+    md: "h-6 w-6 border-2",
+    lg: "h-8 w-8 border-3",
+  }[size];
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 gap-3 text-zinc-400">
-      <Loader2 className={`${sizeClasses[size]} animate-spin text-emerald-500`} />
-      {message && <p className="text-xs uppercase tracking-wider text-zinc-500 font-mono">{message}</p>}
+    <div className="flex flex-col items-center justify-center p-8 text-center font-mono">
+      <div
+        className={`${sizeClass} rounded-full border-[#1D3025] border-t-[#10B981] animate-spin mb-3`}
+      />
+      <p className="text-xs text-[#87958B] tracking-tight">{message}</p>
     </div>
   );
 };

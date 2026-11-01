@@ -2,37 +2,68 @@
 
 @layer base {
   :root {
-    --background: #090d16;
-    --surface: #0f172a;
-    --surface-hover: #1e293b;
-    --border: #1e293b;
-    --foreground: #f8fafc;
-    --muted: #94a3b8;
-    --accent: #10b981;
-    --accent-glow: rgba(16, 185, 129, 0.15);
+    --pitch-black: #050A08;
+    --pitch-dark: #080F0B;
+    --pitch-panel: #0D1C15;
+    --pitch-elevated: #12251B;
+    --pitch-border: #1D3025;
+    --pitch-border-light: #2A4435;
+    --pitch-primary: #10B981;
+    --pitch-secondary: #059669;
+    --pitch-text: #E8EDE9;
+    --pitch-muted: #87958B;
+    --pitch-amber: #F59E0B;
+    --pitch-red: #EF4444;
+
+    /* Semantic assignments */
+    --background: var(--pitch-black);
+    --surface: var(--pitch-panel);
+    --surface-hover: var(--pitch-elevated);
+    --border: var(--pitch-border);
+    --foreground: var(--pitch-text);
+    --muted: var(--pitch-muted);
+    --accent: var(--pitch-primary);
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    background-color: var(--pitch-black);
+    color: var(--pitch-text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 }
 
-/* Custom scrollbars */
+/* Tabular numerals for stats and numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbars with deep forest green styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #050A08;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: #1D3025;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #2A4435;
+}
+
+/* Pitch grass line patterns */
+.pitch-pattern {
+  background-color: #0A1811;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #0A1811,
+    #0A1811 40px,
+    #0C1D15 40px,
+    #0C1D15 80px
+  );
 }

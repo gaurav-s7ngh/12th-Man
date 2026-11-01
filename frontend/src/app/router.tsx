@@ -1,13 +1,15 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "../layouts/AppLayout";
 import { OverviewPage } from "../pages/OverviewPage";
-import { PlayersPage } from "../pages/PlayersPage";
-import { PlayerDetailPage } from "../pages/PlayerDetailPage";
-import { TeamsPage } from "../pages/TeamsPage";
-import { MatchesPage } from "../pages/MatchesPage";
-import { CompetitionsPage } from "../pages/CompetitionsPage";
+import { SquadPage } from "../pages/SquadPage";
+import { TacticsPage } from "../pages/TacticsPage";
+import { RecruitmentPage } from "../pages/RecruitmentPage";
 import { ScoutingPage } from "../pages/ScoutingPage";
+import { AnalyticsLabPage } from "../pages/AnalyticsLabPage";
 import { ShortlistsPage } from "../pages/ShortlistsPage";
+import { ComparePage } from "../pages/ComparePage";
+import { ScenariosPage } from "../pages/ScenariosPage";
+import { PlayerDetailPage } from "../pages/PlayerDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -19,32 +21,57 @@ export const router = createBrowserRouter([
         element: <OverviewPage />,
       },
       {
-        path: "players",
-        element: <PlayersPage />,
+        path: "squad",
+        element: <SquadPage />,
       },
       {
-        path: "players/:id",
-        element: <PlayerDetailPage />,
+        path: "tactics",
+        element: <TacticsPage />,
       },
       {
-        path: "teams",
-        element: <TeamsPage />,
-      },
-      {
-        path: "matches",
-        element: <MatchesPage />,
-      },
-      {
-        path: "competitions",
-        element: <CompetitionsPage />,
+        path: "recruitment",
+        element: <RecruitmentPage />,
       },
       {
         path: "scouting",
         element: <ScoutingPage />,
       },
       {
+        path: "analytics-lab",
+        element: <AnalyticsLabPage />,
+      },
+      {
         path: "shortlists",
         element: <ShortlistsPage />,
+      },
+      {
+        path: "compare",
+        element: <ComparePage />,
+      },
+      {
+        path: "scenarios",
+        element: <ScenariosPage />,
+      },
+      {
+        path: "players/:id",
+        element: <PlayerDetailPage />,
+      },
+      // Backward-compatible alias routes
+      {
+        path: "players",
+        element: <Navigate to="/scouting" replace />,
+      },
+      {
+        path: "teams",
+        element: <Navigate to="/squad" replace />,
+      },
+      {
+        path: "matches",
+        element: <Navigate to="/tactics" replace />,
+      },
+      {
+        path: "*",
+        element: <Navigate to="/" replace />,
       },
     ],
   },

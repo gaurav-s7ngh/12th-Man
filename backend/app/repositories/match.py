@@ -69,3 +69,8 @@ class MatchRepository:
         return list(self.db.execute(
             select(Competition).order_by(Competition.name.asc())
         ).scalars().all())
+
+    def list_seasons(self) -> List[Season]:
+        return list(self.db.execute(
+            select(Season).order_by(Season.name.asc())
+        ).scalars().all())

@@ -1,60 +1,118 @@
 # 12th Man — Football Scouting & Recruitment Intelligence Platform
 
-**12th Man** is a football scouting, performance analytics, and recruitment intelligence platform designed for scouts, analysts, and football managers.
+**12th Man** is a football scouting, performance analytics, and recruitment intelligence platform designed for scouts, analysts, and sporting directors. 
+
+Operating on comprehensive event telemetry from the **StatsBomb 1. Bundesliga 2023/24** season, the platform bridges qualitative observational scouting with mathematical recruitment modeling: objective-driven candidate discovery, 2D recruitment matrix mapping (Profile Fit vs. Squad Complementarity), and unsupervised tactical archetype clustering.
+
+---
+
+## Architecture & Directory Structure
+
+```
+12th Man/
+├── backend/                  # FastAPI REST service & database access layer
+│   ├── app/
+│   │   ├── api/routes/       # Endpoints: club, players, recruitment, ml, scouting, etc.
+│   │   ├── core/             # Configuration, database engine, logging
+│   │   ├── db/models/        # SQLAlchemy ORM declarative models
+│   │   ├── ingestion/        # StatsBomb open data parser & pipeline
+│   │   ├── repositories/     # Data access patterns (club, player, shortlist, etc.)
+│   │   ├── schemas/          # Pydantic v2 validation models
+│   │   └── services/         # Business logic (squad, recruitment, ml_service)
+│   ├── scripts/              # Data utilities & telemetry enrichment scripts
+│   └── tests/                # Pytest unit & integration test suites
+├── database/                 # Database schema migrations & SQL dumps
+├── docs/                     # Technical specifications, schema docs & guides
+├── frontend/                 # React 19 + TypeScript + Vite SPA
+│   ├── src/
+│   │   ├── components/       # UI components (ClubSelector, TacticalPitch, badges, etc.)
+│   │   ├── pages/            # Views: Overview, Squad, Tactics, Recruitment, Scouting, etc.
+│   │   ├── services/         # Typed API client (api.ts)
+│   │   └── types/            # TypeScript domain models
+├── ml/                       # Machine Learning Subsystem (standalone)
+│   ├── clustering/           # Tactical archetype discovery (PCA + K-Means)
+│   ├── features/             # Per-90 telemetry feature matrix extraction
+│   └── recruitment/          # Player cosine similarity engine
+└── README.md
+```
 
 ---
 
 ## Technical Stack
 
-- **Backend**: Python 3.13, FastAPI, SQLAlchemy 2.x, Alembic, Pydantic v2, Psycopg 3
-- **Database**: PostgreSQL 18 (`twelve_man`)
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Lucide React, React Router, TanStack Query, Recharts
-- **Data Source**: StatsBomb Open Data (UEFA Euro 2024 dataset)
+- **Backend**: Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, Pydantic v2, Psycopg 3, Scikit-Learn, NumPy, Pandas
+- **Database**: PostgreSQL 15+ (`twelve_man`)
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Lucide React, TanStack Query v5, Recharts
+- **ML Subsystem**: Standalone Scikit-Learn pipeline (PCA dimensionality reduction, K-Means clustering, Cosine similarity)
+- **Active Dataset**: StatsBomb Open Data — 1. Bundesliga 2023/24 (Season ID: 281, Competition ID: 9)
 
 ---
 
 ## Getting Started
 
 ### 1. Prerequisites
-- Python 3.13+
-- Node.js 20+ & npm
-- PostgreSQL 18 running on `localhost:5432` with a database named `twelve_man`
+- **Python**: 3.11 or higher
+- **Node.js**: 20.x or higher with npm
+- **PostgreSQL**: 15 or higher running locally on port `5432`
 
 ---
 
-### 2. Backend Setup
+### 2. Database Setup
+
+1. Create the PostgreSQL database:
+   ```bash
+   psql -U postgres -c "CREATE DATABASE twelve_man;"
+   ```
+
+2. If restoring from a previous database backup:
+   ```bash
+   pg_restore -U postgres -d twelve_man -v path/to/backup.dump
+   ```
+
+3. Alternatively, apply database migrations:
+   ```bash
+   cd backend
+   alembic upgrade head
+   ```
+
+---
+
+### 3. Backend Setup
 
 ```bash
 cd backend
 
-# 1. Activate Python virtual environment
-.\venv\Scripts\activate
+# 1. Create and activate a Python virtual environment
+python -m venv venv
+.\venv\Scripts\activate       # Windows PowerShell
+# source venv/bin/activate    # Linux / macOS
 
-# 2. Configure environment variables (copy and edit if needed)
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure environment variables
+# Copy .env.example to .env and adjust database credentials if necessary:
 cp .env.example .env
 
-# 3. Apply Alembic database migrations
-alembic upgrade head
+# 4. Optional: Populate preferred foot telemetry from match events
+python scripts/populate_preferred_foot.py
 
-# 4. Ingest StatsBomb Open Data (UEFA Euro 2024: 51 matches, 187k events)
-python -m app.ingestion.statsbomb.cli --competition-id 55 --season-id 282
-
-# 5. Run Backend Tests
+# 5. Run the backend test suite
 pytest -v
 
-# 6. Start the FastAPI Development Server
+# 6. Start the FastAPI development server
 uvicorn app.main:app --reload --port 8000
 ```
 
-The API will be accessible at:
-- API Base: `http://localhost:8000`
-- Interactive Swagger UI: `http://localhost:8000/docs`
-- Health Probe: `http://localhost:8000/api/v1/health`
-- Database Health Probe: `http://localhost:8000/api/v1/db-health`
+The API will be available at:
+- **API Base**: `http://localhost:8000`
+- **Swagger Documentation**: `http://localhost:8000/docs`
+- **Service Health Probe**: `http://localhost:8000/api/v1/health`
+- **Database Health Probe**: `http://localhost:8000/api/v1/db-health`
 
 ---
 
-### 3. Frontend Setup
+### 4. Frontend Setup
 
 ```bash
 cd frontend
@@ -62,27 +120,79 @@ cd frontend
 # 1. Install dependencies
 npm install
 
-# 2. Type-check and lint
+# 2. Verify TypeScript build and ESLint
 npm run build
 npm run lint
 
-# 3. Start Vite dev server
+# 3. Launch Vite development server
 npm run dev
 ```
 
-The application will be running at `http://localhost:5173`.
+The application will be accessible in your browser at `http://localhost:5173`.
 
 ---
 
-## Documentation
+## Core Recruitment Workflow
 
-- Architecture: [`docs/architecture.md`](docs/architecture.md)
-- Database Design: [`docs/database_schema.md`](docs/database_schema.md)
-- Ingestion & Data Quality: [`docs/statsbomb_ingestion.md`](docs/statsbomb_ingestion.md)
+1. **Club Switching (`TopNav -> ClubSelector`)**:
+   Select any of the 18 Bundesliga clubs (e.g., Bayer 04 Leverkusen, FC Bayern München, Borussia Dortmund). Switching clubs updates the active tactical blueprint, squad roster, depth deficits, and recruitment need priorities across all pages without data crosstalk.
+
+2. **Squad & Positional Depth (`/squad`)**:
+   Inspect squad composition, age distribution, positional depth categories (Adequate, Thin, Critical Void, Surplus), and urgent recruitment voids derived from real match appearances.
+
+3. **Tactical Constellation & Identity (`/tactics`)**:
+   View the tactical constellation blueprint, pitch formation slots, and diagnosed tactical voids specific to the active club.
+
+4. **Objective-Driven Recruitment (`/recruitment`)**:
+   Define club recruitment needs or explore candidates for specific tactical profiles (e.g. *Box-to-Box Engine*, *Ball-Playing Defender*, *Inverted Creator*). Filter candidates by position group, preferred foot, playing time threshold, and minimum fit score.
+
+5. **2D Recruitment Matrix (`/analytics-lab`)**:
+   Evaluate every eligible Bundesliga candidate across two orthogonal dimensions:
+   - **Profile Fit (X-Axis)**: Role-specific percentile score calculated from per-90 metrics.
+   - **Squad Complementarity (Y-Axis)**: Calculated against the active club's positional depth voids and tactical system requirements.
+   Filter by position group, preferred foot, sample confidence, or focus on specific matrix quadrants (*Priority Targets*, *Talented Specialists*, *Tactical Gap-Fillers*).
+
+6. **Scouting Discovery (`/scouting`)**:
+   Browse the full Bundesliga player database with multi-dimensional filtering (Position, Role, Preferred Foot, Minimum Minutes, Name Search) and toggle between Dossier Card view and sortable Tabular view.
+
+7. **Player Dossier (`/players/:id`)**:
+   Inspect comprehensive per-90 metrics, position-relative radar comparisons, match telemetry, tactical archetypes, ML similar players, and log observational scouting reports.
+
+8. **Player Comparison (`/compare?playerA=...&playerB=...`)**:
+   Direct head-to-head radar analysis comparing statistical metrics and recruitment fit profiles.
+
+9. **Shortlists & Pipelines (`/shortlists`)**:
+   Curate recruitment candidate pipelines, track targets, and preserve scouting notes across sessions.
 
 ---
 
-## Data Attribution
+## Dataset Scope & Characteristics
 
-Football event data is provided by **StatsBomb** under the [StatsBomb Open Data Licence](https://github.com/statsbomb/open-data).
+- **Primary Dataset**: StatsBomb Open Data for 1. Bundesliga 2023/24 (18 clubs, 462 active player records, 137,765 event records).
+- **Match Coverage Note**: StatsBomb Open Data provides full match-level event coverage for Bayer 04 Leverkusen's unbeaten league campaign fixtures (34 matches), with complete lineup and appearance records for all 18 opposing Bundesliga clubs.
+- **Birth Date Absence**: Birth dates are not provided in the StatsBomb Open Data specification; age filters are noted in the UI with a clear telemetry disclaimer.
+- **Preferred Foot Derivation**: Preferred kicking foot is mathematically derived from match event telemetry (body part usage across passes and shots).
+
+---
+
+## Automated Testing
+
+```bash
+# Backend pytest suite (API integration, repository filters, ML pipelines)
+cd backend
+.\venv\Scripts\pytest.exe -v
+
+# Frontend TypeScript check and production bundle build
+cd frontend
+npm run build
+
+# Frontend ESLint verification
+npm run lint
+```
+
+---
+
+## Attribution & Licensing
+
+Football event telemetry is provided by **StatsBomb** under the [StatsBomb Open Data Licence](https://github.com/statsbomb/open-data).
 Website: [https://statsbomb.com](https://statsbomb.com)

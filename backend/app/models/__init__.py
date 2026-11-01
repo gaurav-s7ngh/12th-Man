@@ -14,6 +14,10 @@ from app.models.scouting import (
     Shortlist,
     ShortlistPlayer,
 )
+from app.models.club import (
+    Club,
+    RecruitmentNeed,
+)
 
 __all__ = [
     "DataSource",
@@ -28,4 +32,6 @@ __all__ = [
     "ScoutingReport",
     "Shortlist",
     "ShortlistPlayer",
+    "Club",
+    "RecruitmentNeed",
 ]

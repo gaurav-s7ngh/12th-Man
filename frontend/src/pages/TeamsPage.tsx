@@ -19,10 +19,10 @@ export const TeamsPage: React.FC = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-xl font-bold font-mono tracking-tight text-white uppercase">
-          Tournament Teams ({teams?.length ?? 0})
+          League Clubs ({teams?.length ?? 0})
         </h1>
         <p className="text-xs text-zinc-400 font-mono mt-0.5">
-          UEFA Euro 2024 participating national teams and squad registries
+          1. Bundesliga 2023/24 clubs and squad registries
         </p>
       </div>
 

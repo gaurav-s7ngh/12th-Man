@@ -38,10 +38,10 @@ export const CompetitionsPage: React.FC = () => {
                   Primary Dataset
                 </div>
                 <h2 className="text-base font-bold font-mono text-zinc-100">
-                  {comp.name} 2024
+                  {comp.name} 2023/24
                 </h2>
                 <div className="text-xs text-zinc-400 font-mono mt-1">
-                  Region: {comp.country || "Europe"} • Gender: {comp.gender || "Male"}
+                  Region: {comp.country || "Germany"} • Gender: {comp.gender || "Male"}
                 </div>
               </div>
               <div className="w-10 h-10 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400">
@@ -52,19 +52,19 @@ export const CompetitionsPage: React.FC = () => {
             <div className="p-3.5 rounded bg-zinc-900/60 border border-zinc-800/80 text-xs font-mono text-zinc-400 space-y-1.5">
               <div className="flex justify-between">
                 <span>External Provider ID:</span>
-                <span className="text-zinc-200">55 (StatsBomb)</span>
+                <span className="text-zinc-200">{comp.external_id || "9"} (StatsBomb)</span>
               </div>
               <div className="flex justify-between">
-                <span>Season ID:</span>
-                <span className="text-zinc-200">282 (2024)</span>
+                <span>Season:</span>
+                <span className="text-zinc-200">2023/2024 (ID: 281)</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Matches:</span>
-                <span className="text-emerald-400 font-bold">51</span>
+                <span className="text-emerald-400 font-bold">34 Fixtures</span>
               </div>
               <div className="flex justify-between">
                 <span>Telemetry Ingestion:</span>
-                <span className="text-emerald-400 font-bold">187,924 Events</span>
+                <span className="text-emerald-400 font-bold">137,765 Events</span>
               </div>
             </div>
 

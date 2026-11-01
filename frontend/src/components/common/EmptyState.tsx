@@ -1,25 +1,33 @@
 import React from "react";
-import { FolderSearch } from "lucide-react";
+import { Inbox } from "lucide-react";
 
 interface EmptyStateProps {
-  title?: string;
+  title: string;
   description?: string;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  title = "No records found",
-  description = "No matching records were found for the current criteria.",
+  title,
+  description,
   action,
+  icon,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-zinc-800 rounded-lg p-6 bg-zinc-950/40">
-      <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-3">
-        <FolderSearch className="w-5 h-5 text-zinc-500" />
+    <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center rounded-lg border border-dashed border-[#1D3025] bg-[#080F0B] font-mono">
+      <div className="p-3 rounded-full bg-[#0D1C15] border border-[#1D3025] text-[#87958B] mb-3">
+        {icon || <Inbox className="h-6 w-6" />}
       </div>
-      <h3 className="text-sm font-medium text-zinc-300 font-mono">{title}</h3>
-      <p className="text-xs text-zinc-500 mt-1 max-w-sm">{description}</p>
-      {action && <div className="mt-4">{action}</div>}
+      <h3 className="text-xs font-bold uppercase tracking-wider text-[#E8EDE9] mb-1">
+        {title}
+      </h3>
+      {description && (
+        <p className="text-[11px] text-[#87958B] max-w-sm mb-4 leading-relaxed">
+          {description}
+        </p>
+      )}
+      {action && <div>{action}</div>}
     </div>
   );
 };
