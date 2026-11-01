@@ -1,0 +1,20 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Python
+backend/venv/
+backend/.pytest_cache/
+backend/__pycache__/
+backend/data/statsbomb_cache/
+*.py[cod]
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
