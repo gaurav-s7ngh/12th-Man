@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 import uuid
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.scouting import ScoutingReport, Shortlist, ShortlistPlayer
@@ -91,7 +91,9 @@ class ScoutingRepository:
 
     def list_shortlists(self) -> List[Shortlist]:
         return list(self.db.execute(
-            select(Shortlist).order_by(Shortlist.created_at.desc())
+            select(Shortlist)
+            .options(selectinload(Shortlist.players))
+            .order_by(Shortlist.created_at.desc())
         ).scalars().all())
 
     def get_shortlist(self, shortlist_id: uuid.UUID) -> Optional[Shortlist]:
@@ -162,12 +164,20 @@ class ScoutingRepository:
         entry_id: uuid.UUID,
         status: Optional[str] = None,
         notes: Optional[str] = None,
+        shortlist_id: Optional[uuid.UUID] = None,
     ) -> Optional[ShortlistPlayer]:
-        sp = self.db.execute(
-            select(ShortlistPlayer)
-            .options(joinedload(ShortlistPlayer.player))
-            .where(ShortlistPlayer.id == entry_id)
-        ).scalar_one_or_none()
+        query = select(ShortlistPlayer).options(joinedload(ShortlistPlayer.player))
+        if shortlist_id:
+            query = query.where(
+                ShortlistPlayer.shortlist_id == shortlist_id,
+                or_(ShortlistPlayer.id == entry_id, ShortlistPlayer.player_id == entry_id),
+            )
+        else:
+            query = query.where(
+                or_(ShortlistPlayer.id == entry_id, ShortlistPlayer.player_id == entry_id)
+            )
+
+        sp = self.db.execute(query).scalar_one_or_none()
         if not sp:
             return None
 
@@ -180,12 +190,21 @@ class ScoutingRepository:
         self.db.refresh(sp)
         return sp
 
-    def advance_shortlist_player(self, entry_id: uuid.UUID) -> Optional[ShortlistPlayer]:
-        sp = self.db.execute(
-            select(ShortlistPlayer)
-            .options(joinedload(ShortlistPlayer.player))
-            .where(ShortlistPlayer.id == entry_id)
-        ).scalar_one_or_none()
+    def advance_shortlist_player(
+        self, entry_id: uuid.UUID, shortlist_id: Optional[uuid.UUID] = None
+    ) -> Optional[ShortlistPlayer]:
+        query = select(ShortlistPlayer).options(joinedload(ShortlistPlayer.player))
+        if shortlist_id:
+            query = query.where(
+                ShortlistPlayer.shortlist_id == shortlist_id,
+                or_(ShortlistPlayer.id == entry_id, ShortlistPlayer.player_id == entry_id),
+            )
+        else:
+            query = query.where(
+                or_(ShortlistPlayer.id == entry_id, ShortlistPlayer.player_id == entry_id)
+            )
+
+        sp = self.db.execute(query).scalar_one_or_none()
         if not sp:
             return None
 
@@ -204,12 +223,29 @@ class ScoutingRepository:
 
         return sp
 
-    def remove_player_from_shortlist(self, entry_id: uuid.UUID) -> bool:
+    def remove_player_from_shortlist(
+        self, shortlist_id: uuid.UUID, identifier: uuid.UUID
+    ) -> bool:
+        # Match by ShortlistPlayer.id OR ShortlistPlayer.player_id within shortlist_id
         sp = self.db.execute(
-            select(ShortlistPlayer).where(ShortlistPlayer.id == entry_id)
+            select(ShortlistPlayer).where(
+                ShortlistPlayer.shortlist_id == shortlist_id,
+                or_(
+                    ShortlistPlayer.id == identifier,
+                    ShortlistPlayer.player_id == identifier,
+                ),
+            )
         ).scalar_one_or_none()
+
+        # Fallback if entry was passed by exact ShortlistPlayer.id
+        if not sp:
+            sp = self.db.execute(
+                select(ShortlistPlayer).where(ShortlistPlayer.id == identifier)
+            ).scalar_one_or_none()
+
         if not sp:
             return False
+
         self.db.delete(sp)
         self.db.commit()
         return True

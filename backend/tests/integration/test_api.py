@@ -225,14 +225,38 @@ def test_shortlist_lifecycle():
     assert patch_res.json()["recruitment_status"] == "Shortlist"
     assert patch_res.json()["notes"] == "Moved back for re-evaluation"
 
-    # Remove player from shortlist
+    # Remove player from shortlist using entry_id
     del_p_res = client.delete(f"/api/v1/shortlists/{sl_id}/players/{entry_id}")
     assert del_p_res.status_code == 204
 
-    # Verify player is gone
+    # Verify player is gone from shortlist
     detail_res2 = client.get(f"/api/v1/shortlists/{sl_id}")
     assert detail_res2.status_code == 200
     assert len(detail_res2.json()["players"]) == 0
+
+    # Verify underlying player record still exists!
+    player_check = client.get(f"/api/v1/players/{player_id}")
+    assert player_check.status_code == 200
+    assert player_check.json()["id"] == player_id
+
+    # Re-add player and test deletion by player_id
+    re_add = client.post(
+        f"/api/v1/shortlists/{sl_id}/players",
+        json={"player_id": player_id, "notes": "Re-added for player_id delete test", "recruitment_status": "Watchlist"},
+    )
+    assert re_add.status_code == 201
+
+    # Delete using player_id instead of entry_id
+    del_by_player_id_res = client.delete(f"/api/v1/shortlists/{sl_id}/players/{player_id}")
+    assert del_by_player_id_res.status_code == 204
+
+    # Verify player is gone again
+    detail_res3 = client.get(f"/api/v1/shortlists/{sl_id}")
+    assert detail_res3.status_code == 200
+    assert len(detail_res3.json()["players"]) == 0
+
+    # Underlying player STILL exists
+    assert client.get(f"/api/v1/players/{player_id}").status_code == 200
 
     # Delete shortlist
     del_sl_res = client.delete(f"/api/v1/shortlists/{sl_id}")

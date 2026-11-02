@@ -67,8 +67,9 @@ def update_shortlist_player(
         entry_id=entry_id,
         status=data.recruitment_status,
         notes=data.notes,
+        shortlist_id=shortlist_id,
     )
-    if not updated or updated.shortlist_id != shortlist_id:
+    if not updated:
         raise HTTPException(status_code=404, detail="Player entry not found in shortlist")
 
     return updated
@@ -85,8 +86,8 @@ def advance_shortlist_player(
     if not sl:
         raise HTTPException(status_code=404, detail="Shortlist not found")
 
-    advanced = service.advance_shortlist_player(entry_id)
-    if not advanced or advanced.shortlist_id != shortlist_id:
+    advanced = service.advance_shortlist_player(entry_id, shortlist_id=shortlist_id)
+    if not advanced:
         raise HTTPException(status_code=404, detail="Player entry not found in shortlist")
 
     return advanced
@@ -103,7 +104,7 @@ def remove_player_from_shortlist(
     if not sl:
         raise HTTPException(status_code=404, detail="Shortlist not found")
 
-    success = service.remove_player_from_shortlist(entry_id)
+    success = service.remove_player_from_shortlist(shortlist_id, entry_id)
     if not success:
         raise HTTPException(status_code=404, detail="Player entry not found in shortlist")
     return None

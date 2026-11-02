@@ -68,18 +68,24 @@ class ScoutingService:
         entry_id: uuid.UUID,
         status: Optional[str] = None,
         notes: Optional[str] = None,
+        shortlist_id: Optional[uuid.UUID] = None,
     ) -> Optional[ShortlistPlayer]:
         return self.repo.update_shortlist_player(
             entry_id=entry_id,
             status=status,
             notes=notes,
+            shortlist_id=shortlist_id,
         )
 
-    def advance_shortlist_player(self, entry_id: uuid.UUID) -> Optional[ShortlistPlayer]:
-        return self.repo.advance_shortlist_player(entry_id)
+    def advance_shortlist_player(
+        self, entry_id: uuid.UUID, shortlist_id: Optional[uuid.UUID] = None
+    ) -> Optional[ShortlistPlayer]:
+        return self.repo.advance_shortlist_player(entry_id, shortlist_id=shortlist_id)
 
-    def remove_player_from_shortlist(self, entry_id: uuid.UUID) -> bool:
-        return self.repo.remove_player_from_shortlist(entry_id)
+    def remove_player_from_shortlist(
+        self, shortlist_id: uuid.UUID, entry_id: uuid.UUID
+    ) -> bool:
+        return self.repo.remove_player_from_shortlist(shortlist_id, entry_id)
 
     def delete_shortlist(self, shortlist_id: uuid.UUID) -> bool:
         return self.repo.delete_shortlist(shortlist_id)

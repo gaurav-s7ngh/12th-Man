@@ -63,7 +63,8 @@ export const ShortlistsPage: React.FC = () => {
     queryFn: api.getShortlists,
   });
 
-  const effectiveShortlistId = selectedShortlistId || (shortlists && shortlists.length > 0 ? shortlists[0].id : "");
+  const activeShortlistExists = shortlists?.some((s) => s.id === selectedShortlistId);
+  const effectiveShortlistId = (activeShortlistExists ? selectedShortlistId : shortlists?.[0]?.id) || "";
 
   // Query detail for active shortlist
   const { data: shortlistDetail, isLoading: loadingDetail } = useQuery({
@@ -89,12 +90,14 @@ export const ShortlistsPage: React.FC = () => {
 
   // Advance player mutation
   const advanceMutation = useMutation({
-    mutationFn: (entryId: string) => api.advanceShortlistPlayer(effectiveShortlistId, entryId),
-    onMutate: (entryId) => {
+    mutationFn: ({ shortlistId, entryId }: { shortlistId: string; entryId: string }) =>
+      api.advanceShortlistPlayer(shortlistId, entryId),
+    onMutate: ({ entryId }) => {
       setAdvancingId(entryId);
       setActionError(null);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shortlistDetail", variables.shortlistId] });
       queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
       queryClient.invalidateQueries({ queryKey: ["shortlists"] });
     },
@@ -108,12 +111,21 @@ export const ShortlistsPage: React.FC = () => {
 
   // Move candidate to specific stage (drag & drop)
   const updateStageMutation = useMutation({
-    mutationFn: ({ entryId, status }: { entryId: string; status: string }) =>
-      api.updateShortlistPlayer(effectiveShortlistId, entryId, { recruitment_status: status }),
+    mutationFn: ({
+      shortlistId,
+      entryId,
+      status,
+    }: {
+      shortlistId: string;
+      entryId: string;
+      status: string;
+    }) =>
+      api.updateShortlistPlayer(shortlistId, entryId, { recruitment_status: status }),
     onMutate: () => {
       setActionError(null);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shortlistDetail", variables.shortlistId] });
       queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
       queryClient.invalidateQueries({ queryKey: ["shortlists"] });
     },
@@ -124,11 +136,13 @@ export const ShortlistsPage: React.FC = () => {
 
   // Remove player mutation
   const removePlayerMutation = useMutation({
-    mutationFn: (entryId: string) => api.removePlayerFromShortlist(effectiveShortlistId, entryId),
+    mutationFn: ({ shortlistId, entryId }: { shortlistId: string; entryId: string }) =>
+      api.removePlayerFromShortlist(shortlistId, entryId),
     onMutate: () => {
       setActionError(null);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shortlistDetail", variables.shortlistId] });
       queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
       queryClient.invalidateQueries({ queryKey: ["shortlists"] });
     },
@@ -147,10 +161,10 @@ export const ShortlistsPage: React.FC = () => {
     });
   };
 
-  const handleAdvance = (candidateId: string, currentStatus: string) => {
+  const handleAdvance = (shortlistId: string, candidateId: string, currentStatus: string) => {
     const normCurrent = normalizeStage(currentStatus);
     if (normCurrent === "Final Decision") return;
-    advanceMutation.mutate(candidateId);
+    advanceMutation.mutate({ shortlistId, entryId: candidateId });
   };
 
   if (isLoading) {
@@ -272,9 +286,26 @@ export const ShortlistsPage: React.FC = () => {
                 onDrop={(e) => {
                   e.preventDefault();
                   setDragOverStage(null);
-                  const entryId = e.dataTransfer.getData("text/plain");
-                  if (entryId) {
-                    updateStageMutation.mutate({ entryId, status: stage.id });
+                  const raw = e.dataTransfer.getData("text/plain");
+                  if (raw) {
+                    try {
+                      const data = JSON.parse(raw);
+                      if (data.entryId) {
+                        updateStageMutation.mutate({
+                          shortlistId: data.shortlistId || effectiveShortlistId,
+                          entryId: data.entryId,
+                          status: stage.id,
+                        });
+                        return;
+                      }
+                    } catch {
+                      // Fallback for plain string
+                    }
+                    updateStageMutation.mutate({
+                      shortlistId: effectiveShortlistId,
+                      entryId: raw,
+                      status: stage.id,
+                    });
                   }
                 }}
                 className={`rounded-xl border p-3.5 space-y-3 min-h-[460px] flex flex-col justify-between transition-colors ${
@@ -306,7 +337,13 @@ export const ShortlistsPage: React.FC = () => {
                           key={cand.id}
                           draggable
                           onDragStart={(e) => {
-                            e.dataTransfer.setData("text/plain", cand.id);
+                            e.dataTransfer.setData(
+                              "text/plain",
+                              JSON.stringify({
+                                entryId: cand.id,
+                                shortlistId: cand.shortlist_id || effectiveShortlistId,
+                              })
+                            );
                             e.dataTransfer.effectAllowed = "move";
                           }}
                           className="rounded-lg border border-[#1D3025] bg-[#080F0B] hover:border-emerald-500/50 p-4 space-y-2.5 transition-all shadow-md cursor-grab active:cursor-grabbing"
@@ -325,7 +362,10 @@ export const ShortlistsPage: React.FC = () => {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    removePlayerMutation.mutate(cand.id);
+                                    removePlayerMutation.mutate({
+                                      shortlistId: cand.shortlist_id || effectiveShortlistId,
+                                      entryId: cand.id,
+                                    });
                                   }}
                                   title="Remove player from pipeline"
                                   className="p-1 rounded text-[#87958B] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
@@ -366,7 +406,13 @@ export const ShortlistsPage: React.FC = () => {
                           <button
                             type="button"
                             disabled={isFinalStage || isAdvancing}
-                            onClick={() => handleAdvance(cand.id, stage.id)}
+                            onClick={() =>
+                              handleAdvance(
+                                cand.shortlist_id || effectiveShortlistId,
+                                cand.id,
+                                stage.id
+                              )
+                            }
                             className={`w-full py-1.5 rounded text-center text-[10px] font-bold uppercase transition-colors flex items-center justify-center gap-1.5 ${
                               isFinalStage
                                 ? "bg-[#080F0B] text-[#87958B]/50 border border-[#1D3025] cursor-not-allowed"

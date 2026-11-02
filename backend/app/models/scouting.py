@@ -69,6 +69,10 @@ class Shortlist(Base):
         "ShortlistPlayer", back_populates="shortlist", cascade="all, delete-orphan"
     )
 
+    @property
+    def player_count(self) -> int:
+        return len(self.players) if self.players else 0
+
 
 class ShortlistPlayer(Base):
     __tablename__ = "shortlist_players"
