@@ -6,6 +6,42 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.scouting import ScoutingReport, Shortlist, ShortlistPlayer
 
+PIPELINE_STAGES = [
+    "Watchlist",
+    "Shortlist",
+    "Scout Review",
+    "Follow-up",
+    "Final Decision",
+]
+
+STAGE_NORMALIZATION = {
+    "watchlist": "Watchlist",
+    "watch": "Watchlist",
+    "target": "Watchlist",
+    "targeted": "Watchlist",
+    "shortlist": "Shortlist",
+    "shortlisted": "Shortlist",
+    "scout review": "Scout Review",
+    "scout_review": "Scout Review",
+    "scout": "Scout Review",
+    "review": "Scout Review",
+    "follow-up": "Follow-up",
+    "follow_up": "Follow-up",
+    "followup": "Follow-up",
+    "follow up": "Follow-up",
+    "final decision": "Final Decision",
+    "final_decision": "Final Decision",
+    "decision": "Final Decision",
+    "signed": "Final Decision",
+}
+
+
+def normalize_pipeline_stage(status_str: Optional[str]) -> str:
+    if not status_str or not status_str.strip():
+        return PIPELINE_STAGES[0]
+    cleaned = status_str.strip().lower()
+    return STAGE_NORMALIZATION.get(cleaned, PIPELINE_STAGES[0])
+
 
 class ScoutingRepository:
     def __init__(self, db: Session):
@@ -59,13 +95,17 @@ class ScoutingRepository:
         ).scalars().all())
 
     def get_shortlist(self, shortlist_id: uuid.UUID) -> Optional[Shortlist]:
-        return self.db.execute(
+        sl = self.db.execute(
             select(Shortlist)
             .options(
                 selectinload(Shortlist.players).joinedload(ShortlistPlayer.player)
             )
             .where(Shortlist.id == shortlist_id)
         ).scalar_one_or_none()
+        if sl:
+            for p in sl.players:
+                p.recruitment_status = normalize_pipeline_stage(p.recruitment_status)
+        return sl
 
     def create_shortlist(
         self,
@@ -88,8 +128,9 @@ class ScoutingRepository:
         shortlist_id: uuid.UUID,
         player_id: uuid.UUID,
         notes: Optional[str] = None,
-        status: str = "Target",
+        status: str = "Watchlist",
     ) -> ShortlistPlayer:
+        norm_status = normalize_pipeline_stage(status)
         existing = self.db.execute(
             select(ShortlistPlayer).where(
                 ShortlistPlayer.shortlist_id == shortlist_id,
@@ -100,7 +141,7 @@ class ScoutingRepository:
         if existing:
             if notes is not None:
                 existing.notes = notes
-            existing.recruitment_status = status
+            existing.recruitment_status = norm_status
             self.db.commit()
             self.db.refresh(existing)
             return existing
@@ -109,9 +150,76 @@ class ScoutingRepository:
             shortlist_id=shortlist_id,
             player_id=player_id,
             notes=notes,
-            recruitment_status=status,
+            recruitment_status=norm_status,
         )
         self.db.add(sp)
         self.db.commit()
         self.db.refresh(sp)
         return sp
+
+    def update_shortlist_player(
+        self,
+        entry_id: uuid.UUID,
+        status: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> Optional[ShortlistPlayer]:
+        sp = self.db.execute(
+            select(ShortlistPlayer)
+            .options(joinedload(ShortlistPlayer.player))
+            .where(ShortlistPlayer.id == entry_id)
+        ).scalar_one_or_none()
+        if not sp:
+            return None
+
+        if status is not None:
+            sp.recruitment_status = normalize_pipeline_stage(status)
+        if notes is not None:
+            sp.notes = notes
+
+        self.db.commit()
+        self.db.refresh(sp)
+        return sp
+
+    def advance_shortlist_player(self, entry_id: uuid.UUID) -> Optional[ShortlistPlayer]:
+        sp = self.db.execute(
+            select(ShortlistPlayer)
+            .options(joinedload(ShortlistPlayer.player))
+            .where(ShortlistPlayer.id == entry_id)
+        ).scalar_one_or_none()
+        if not sp:
+            return None
+
+        current_stage = normalize_pipeline_stage(sp.recruitment_status)
+        try:
+            curr_idx = PIPELINE_STAGES.index(current_stage)
+        except ValueError:
+            curr_idx = 0
+
+        # Advance exactly one stage forward if not at Final Decision
+        if curr_idx < len(PIPELINE_STAGES) - 1:
+            next_stage = PIPELINE_STAGES[curr_idx + 1]
+            sp.recruitment_status = next_stage
+            self.db.commit()
+            self.db.refresh(sp)
+
+        return sp
+
+    def remove_player_from_shortlist(self, entry_id: uuid.UUID) -> bool:
+        sp = self.db.execute(
+            select(ShortlistPlayer).where(ShortlistPlayer.id == entry_id)
+        ).scalar_one_or_none()
+        if not sp:
+            return False
+        self.db.delete(sp)
+        self.db.commit()
+        return True
+
+    def delete_shortlist(self, shortlist_id: uuid.UUID) -> bool:
+        sl = self.db.execute(
+            select(Shortlist).where(Shortlist.id == shortlist_id)
+        ).scalar_one_or_none()
+        if not sl:
+            return False
+        self.db.delete(sl)
+        self.db.commit()
+        return True

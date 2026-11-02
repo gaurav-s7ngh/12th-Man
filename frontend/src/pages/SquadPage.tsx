@@ -6,6 +6,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ErrorMessage } from "../components/common/ErrorMessage";
 import { PositionBadge } from "../components/football/PositionBadge";
+import { formatMinutes } from "../lib/utils";
 import { TacticalPitch } from "../components/football/TacticalPitch";
 import {
   FORMATION_SLOTS,
@@ -97,7 +98,7 @@ export const SquadPage: React.FC = () => {
       {/* Header */}
       <PageHeader
         title="Squad Room & Positional Depth"
-        subtitle={`Tactical squad composition and rotation coverage for ${club?.name || "Bayer 04 Leverkusen"}`}
+        subtitle={`Tactical squad composition and rotation coverage for ${club?.name || "Active Club"}`}
         breadcrumbs={[
           { label: "Overview", href: "/" },
           { label: "Squad Room", href: "/squad" },
@@ -187,60 +188,41 @@ export const SquadPage: React.FC = () => {
 
               {/* Tactical summary text */}
               <p className="text-xs font-mono text-[#87958B] leading-relaxed">
-                {formation === "3-4-2-1"
-                  ? "Two central midfielders must cover huge channels behind the wing-backs. Without a true box-to-box engine, defensive transitions are exposed."
-                  : "The central midfield structure requires continuous pressing transitions and box-to-box ball recoveries."}
+                Tactical architecture for <strong className="text-[#E8EDE9]">{club?.name || "Squad"}</strong> deployed in <strong className="text-emerald-400">{formation}</strong> under {club?.manager_name || "Head Coach"}. Depth assessment evaluates starting requirements against real appearance telemetry.
               </p>
 
-              {/* Profile Coverage Meters matching Video f_020.png */}
-              <div className="space-y-4 pt-2 border-t border-[#1D3025]">
+              {/* Dynamic Positional Depth Coverage */}
+              <div className="space-y-3.5 pt-2 border-t border-[#1D3025]">
                 <div className="text-xs font-mono font-bold uppercase text-[#E8EDE9] tracking-wider">
-                  PROFILE COVERAGE
+                  POSITIONAL DEPTH COVERAGE
                 </div>
 
-                {/* Creative */}
-                <div className="space-y-1 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#E8EDE9]">Creative Creator</span>
-                    <span className="text-emerald-400 font-bold">88%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-[#080F0B] overflow-hidden border border-[#1D3025]">
-                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: "88%" }} />
-                  </div>
-                </div>
+                {assessment?.depth_categories.map((cat) => {
+                  const pct = Math.min(100, Math.round((cat.current_count / Math.max(1, cat.target_slots)) * 100));
+                  const isVoid = cat.status === "Critical Void";
+                  const isThin = cat.status === "Thin";
+                  const barColor = isVoid ? "bg-rose-500" : isThin ? "bg-amber-400" : "bg-emerald-400";
+                  const textColor = isVoid ? "text-rose-400" : isThin ? "text-amber-400" : "text-emerald-400";
 
-                {/* Deep Play */}
-                <div className="space-y-1 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#E8EDE9]">Deep Playmaker</span>
-                    <span className="text-emerald-400 font-bold">74%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-[#080F0B] overflow-hidden border border-[#1D3025]">
-                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: "74%" }} />
-                  </div>
-                </div>
-
-                {/* Ball Winning */}
-                <div className="space-y-1 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#E8EDE9]">Ball Winning Destroyer</span>
-                    <span className="text-emerald-400 font-bold">84%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-[#080F0B] overflow-hidden border border-[#1D3025]">
-                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: "84%" }} />
-                  </div>
-                </div>
-
-                {/* Box-to-Box · SQUAD WEAKNESS */}
-                <div className="space-y-1 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-rose-400 font-bold">Box-to-Box · SQUAD WEAKNESS</span>
-                    <span className="text-rose-400 font-bold">31%</span>
-                  </div>
-                  <div className="h-2.5 w-full rounded-full bg-[#080F0B] overflow-hidden border border-rose-900/50">
-                    <div className="h-full bg-rose-500 rounded-full animate-pulse" style={{ width: "31%" }} />
-                  </div>
-                </div>
+                  return (
+                    <div key={cat.category} className="space-y-1 font-mono text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#E8EDE9] truncate max-w-[200px]">{cat.category}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] uppercase font-bold ${textColor}`}>
+                            {cat.status}
+                          </span>
+                          <span className={`${textColor} font-bold tabular-nums`}>
+                            {cat.current_count}/{cat.target_slots} ({pct}%)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-[#080F0B] overflow-hidden border border-[#1D3025]">
+                        <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Action Link to Recruitment */}
@@ -307,7 +289,7 @@ export const SquadPage: React.FC = () => {
                           <span className="text-[10px] text-[#87958B]">{p.age ? `${p.age}y` : ""}</span>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-[#87958B]">
-                          <span>{p.total_minutes}m</span>
+                          <span>{formatMinutes(p.total_minutes)}</span>
                           <span className="text-emerald-400">{p.starts} starts</span>
                         </div>
                       </div>
@@ -376,7 +358,7 @@ export const SquadPage: React.FC = () => {
                       {player.starts}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-[#E8EDE9]">
-                      {player.total_minutes}m
+                      {formatMinutes(player.total_minutes)}
                     </td>
                     <td className="px-4 py-3 text-right text-emerald-400 font-bold">
                       {player.goals}

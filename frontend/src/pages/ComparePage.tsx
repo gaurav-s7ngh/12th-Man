@@ -6,6 +6,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { SectionHeader } from "../components/layout/SectionHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { PositionBadge } from "../components/football/PositionBadge";
+import { formatMinutes } from "../lib/utils";
 import { RadarComparisonChart, type RadarDataPoint } from "../components/football/RadarComparisonChart";
 import { formatP90, formatPct, getPositionCategory } from "../lib/utils";
 import { AlertTriangle, ArrowUpRight } from "lucide-react";
@@ -185,7 +186,7 @@ export const ComparePage: React.FC = () => {
                     <ArrowUpRight className="h-3 w-3 text-[#87958B]" />
                   </Link>
                   <div className="text-[11px] text-[#87958B] mt-0.5">
-                    {playerA.nationality || "—"} • {playerA.total_minutes}' Mins
+                    {playerA.nationality || "—"} • {formatMinutes(playerA.total_minutes)}
                   </div>
                 </div>
               </div>
@@ -228,7 +229,7 @@ export const ComparePage: React.FC = () => {
                     <ArrowUpRight className="h-3 w-3 text-[#87958B]" />
                   </Link>
                   <div className="text-[11px] text-[#87958B] mt-0.5">
-                    {playerB.nationality || "—"} • {playerB.total_minutes}' Mins
+                    {playerB.nationality || "—"} • {formatMinutes(playerB.total_minutes)}
                   </div>
                 </div>
               </div>

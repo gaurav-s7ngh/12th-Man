@@ -8,6 +8,7 @@ import { ErrorMessage } from "../components/common/ErrorMessage";
 import { PlayerIdentityHeader } from "../components/football/PlayerIdentityHeader";
 import { RadarComparisonChart, type RadarDataPoint } from "../components/football/RadarComparisonChart";
 import { ModalDialog } from "../components/common/ModalDialog";
+import { formatMinutes } from "../lib/utils";
 import type { ScoutingReportCreate } from "../types/scouting";
 import type { PlayerMatchStats } from "../types/football";
 import {
@@ -616,7 +617,7 @@ export const PlayerDetailPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[#87958B]">Total Season Minutes:</span>
-                  <span className="text-[#E8EDE9] font-bold">{statsData?.aggregated?.total_minutes ?? 0} mins</span>
+                  <span className="text-[#E8EDE9] font-bold">{formatMinutes(statsData?.aggregated?.total_minutes)}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[#87958B]">Starting Lineup Appearances:</span>

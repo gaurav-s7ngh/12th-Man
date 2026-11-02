@@ -60,13 +60,17 @@ export const CompetitionsPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span>Total Matches:</span>
-                <span className="text-emerald-400 font-bold">34 Fixtures</span>
+                <span className="text-emerald-400 font-bold">34 Fixtures (Leverkusen vs 17 clubs)</span>
               </div>
               <div className="flex justify-between">
                 <span>Telemetry Ingestion:</span>
                 <span className="text-emerald-400 font-bold">137,765 Events</span>
               </div>
             </div>
+
+            <p className="text-[10px] text-zinc-400/80 font-mono italic">
+              Note: StatsBomb Open Data provides telemetry for 34 matches featuring Bayer 04 Leverkusen against all 17 league rivals. Non-Leverkusen matches from the 306-fixture season are not published by StatsBomb in this dataset.
+            </p>
 
             <div className="pt-2 text-[11px] text-zinc-500 font-mono flex items-center justify-between">
               <span>Source: StatsBomb Open Data</span>

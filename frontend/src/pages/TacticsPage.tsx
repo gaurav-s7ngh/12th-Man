@@ -131,7 +131,7 @@ export const TacticsPage: React.FC = () => {
       <PageHeader
         title="Tactical Identity & Constellation Blueprint"
         subtitle={`System specifications, positional requirements and tactical archetypes for ${
-          club?.name || "Bayer 04 Leverkusen"
+          club?.name || "Active Club"
         }`}
         breadcrumbs={[
           { label: "Overview", href: "/" },

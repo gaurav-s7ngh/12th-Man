@@ -98,11 +98,14 @@ export const AnalyticsLabPage: React.FC = () => {
     });
   }, [mapData, searchQuery, quadrantFilter]);
 
-  // Active candidate to highlight on left panel
-  const activeFocusCandidate =
-    selectedCandidate ||
-    hoveredCandidate ||
-    (filteredCandidates.length > 0 ? filteredCandidates[0] : null);
+  // Active candidate displayed on left panel (preserves selection on mouse leave, auto-adjusts on filter change)
+  const activeFocusCandidate = useMemo(() => {
+    if (selectedCandidate) {
+      const match = filteredCandidates.find((c) => c.id === selectedCandidate.id);
+      if (match) return match;
+    }
+    return filteredCandidates.length > 0 ? filteredCandidates[0] : null;
+  }, [selectedCandidate, filteredCandidates]);
 
   const handleNeedChange = (needId: string) => {
     setSelectedNeedId(needId);
@@ -249,10 +252,11 @@ export const AnalyticsLabPage: React.FC = () => {
                     className="w-full bg-[#080F0B] border border-[#1D3025] rounded px-2.5 py-1.5 text-xs text-[#E8EDE9] focus:outline-none focus:border-emerald-500"
                   >
                     <option value="">All Positions</option>
-                    <option value="Defender">Defenders</option>
-                    <option value="Midfielder">Midfielders</option>
-                    <option value="Forward">Forwards</option>
-                    <option value="Goalkeeper">Goalkeepers</option>
+                    <option value="Goalkeeper">Goalkeepers (GK)</option>
+                    <option value="Defender">Defenders (DEF)</option>
+                    <option value="Midfielder">Midfielders (MID)</option>
+                    <option value="Winger">Wingers (WNG)</option>
+                    <option value="Forward">Forwards (FWD)</option>
                   </select>
                 </div>
 
@@ -531,8 +535,18 @@ export const AnalyticsLabPage: React.FC = () => {
                       const bottomPct = 10 + (c.squad_complementarity / 100) * 80;
 
                       const isPriority = c.quadrant === "priority_target";
-                      const isSelected = selectedCandidate?.id === c.id;
+                      const isSelected = activeFocusCandidate?.id === c.id;
                       const isHovered = hoveredCandidate?.id === c.id;
+                      const hasSelection = !!activeFocusCandidate;
+
+                      // Dynamic tooltip positioning to prevent clipping near edges
+                      const tooltipYClass = bottomPct > 65 ? "top-full mt-2" : "bottom-full mb-2";
+                      const tooltipXClass =
+                        leftPct > 75
+                          ? "right-0"
+                          : leftPct < 25
+                          ? "left-0"
+                          : "left-1/2 -translate-x-1/2";
 
                       return (
                         <div
@@ -540,30 +554,78 @@ export const AnalyticsLabPage: React.FC = () => {
                           onClick={() => setSelectedCandidate(c)}
                           onMouseEnter={() => setHoveredCandidate(c)}
                           onMouseLeave={() => setHoveredCandidate(null)}
-                          className="absolute -translate-x-1/2 translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-150"
+                          className={`absolute -translate-x-1/2 translate-y-1/2 cursor-pointer transition-all duration-150 ${
+                            isHovered
+                              ? "z-40 scale-125"
+                              : isSelected
+                              ? "z-30 scale-110"
+                              : "z-10"
+                          } ${
+                            hasSelection && !isSelected && !isHovered
+                              ? "opacity-50 hover:opacity-100"
+                              : "opacity-90 hover:opacity-100"
+                          }`}
                           style={{ left: `${leftPct}%`, bottom: `${bottomPct}%` }}
                         >
-                          <div
-                            className={`rounded-full transition-all ${
-                              isSelected
-                                ? "h-5 w-5 bg-white border-2 border-emerald-400 shadow-[0_0_16px_rgba(255,255,255,0.9)]"
-                                : isPriority
-                                ? "h-4 w-4 bg-emerald-400 border-2 border-[#050A08] shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                                : c.is_squad_member
-                                ? "h-3.5 w-3.5 bg-cyan-400 border border-white"
-                                : c.quadrant === "talented_specialist"
-                                ? "h-3 w-3 bg-amber-400/80 border border-[#1D3025]"
-                                : c.quadrant === "tactical_gap_filler"
-                                ? "h-3 w-3 bg-purple-400/80 border border-[#1D3025]"
-                                : "h-2.5 w-2.5 bg-zinc-600/70 border border-zinc-800"
-                            }`}
-                          />
+                          {/* Hit Target with subtle marker outline to keep overlapping markers distinguishable */}
+                          <div className="w-5 h-5 -m-1 flex items-center justify-center">
+                            <div
+                              className={`rounded-full transition-all duration-150 ring-1 ring-[#080F0B]/90 ${
+                                isSelected
+                                  ? "h-4 w-4 bg-white border-2 border-emerald-400 ring-2 ring-emerald-400/50 shadow-[0_0_14px_rgba(16,185,129,0.9)]"
+                                  : isHovered
+                                  ? "h-3.5 w-3.5 bg-white border-2 border-cyan-400 ring-2 ring-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.9)]"
+                                  : isPriority
+                                  ? "h-3 w-3 bg-emerald-400 border border-emerald-950/80 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                  : c.is_squad_member
+                                  ? "h-3 w-3 bg-cyan-400 border border-cyan-950/80 shadow-[0_0_6px_rgba(6,182,212,0.4)]"
+                                  : c.quadrant === "talented_specialist"
+                                  ? "h-2.5 w-2.5 bg-amber-400 border border-amber-950/80"
+                                  : c.quadrant === "tactical_gap_filler"
+                                  ? "h-2.5 w-2.5 bg-purple-400 border border-purple-950/80"
+                                  : "h-2 w-2 bg-zinc-500 border border-zinc-900"
+                              }`}
+                            />
+                          </div>
 
-                          {/* Point Label on Hover or Priority */}
-                          {(isPriority || isHovered || isSelected) && (
-                            <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[9px] font-bold text-[#E8EDE9] whitespace-nowrap bg-[#080F0B]/95 px-2 py-0.5 rounded border border-[#1D3025] shadow-lg pointer-events-none">
-                              <span className={isPriority ? "text-emerald-400" : ""}>{c.name}</span>
-                              <span className="text-[#87958B] ml-1">({c.profile_fit}%, {c.squad_complementarity}%)</span>
+                          {/* Hover Tooltip: Displayed ONLY on hover, zero permanent text clutter */}
+                          {isHovered && (
+                            <div
+                              className={`absolute ${tooltipYClass} ${tooltipXClass} z-50 pointer-events-none w-56 p-2.5 bg-[#080F0B]/95 backdrop-blur-md rounded-lg border border-[#1D3025] shadow-[0_8px_24px_rgba(0,0,0,0.9)] text-left font-mono`}
+                            >
+                              <div className="flex items-start justify-between gap-1 pb-1 border-b border-[#1D3025]/80">
+                                <div className="min-w-0 pr-1">
+                                  <div className="text-xs font-bold text-[#E8EDE9] truncate">{c.name}</div>
+                                  <div className="text-[10px] text-[#87958B] truncate">{c.current_club}</div>
+                                </div>
+                                <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#111814] text-emerald-400 border border-emerald-500/30">
+                                  {c.primary_position || "Not recorded"}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-1.5 pt-2">
+                                <div className="bg-[#050A08] p-1.5 rounded border border-[#1D3025]">
+                                  <div className="text-[8px] text-[#87958B] uppercase">Profile Fit</div>
+                                  <div className="text-xs font-bold text-emerald-400 tabular-nums">
+                                    {c.profile_fit}%
+                                  </div>
+                                </div>
+                                <div className="bg-[#050A08] p-1.5 rounded border border-[#1D3025]">
+                                  <div className="text-[8px] text-[#87958B] uppercase">Complementarity</div>
+                                  <div className="text-xs font-bold text-cyan-400 tabular-nums">
+                                    {c.squad_complementarity}%
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-1.5 pt-1 border-t border-[#1D3025]/50 text-[9px] text-[#87958B] flex items-center justify-between">
+                                <span className="truncate">{c.quadrant_label}</span>
+                                {isSelected ? (
+                                  <span className="text-emerald-400 font-bold shrink-0">Selected</span>
+                                ) : (
+                                  <span className="text-zinc-500 shrink-0">Click to inspect</span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -715,7 +777,7 @@ export const AnalyticsLabPage: React.FC = () => {
               <div className="p-3 bg-[#080F0B] rounded border border-[#1D3025] space-y-1.5">
                 <span className="text-cyan-400 font-bold block">Y-Axis: Squad Complementarity Score</span>
                 <p>
-                  Calculated against the configured club squad (Bayer Leverkusen):
+                  Calculated against the configured club squad ({club?.name || "Active Club"}):
                   <code className="text-[#E8EDE9] block pt-1">Comp = 52.0 + Δ(Positional Deficit) + Δ(Profile Uniqueness) + Δ(Tactical System) + Δ(Age)</code>
                   Directly evaluates whether candidate solves active vulnerabilities or overlaps with starters.
                 </p>

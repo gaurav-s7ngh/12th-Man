@@ -274,4 +274,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  updateShortlistPlayer: (
+    shortlistId: string,
+    entryId: string,
+    data: { recruitment_status?: string; notes?: string }
+  ) =>
+    request<ShortlistPlayer>(`/api/v1/shortlists/${shortlistId}/players/${entryId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  advanceShortlistPlayer: (shortlistId: string, entryId: string) =>
+    request<ShortlistPlayer>(`/api/v1/shortlists/${shortlistId}/players/${entryId}/advance`, {
+      method: "POST",
+    }),
+  removePlayerFromShortlist: (shortlistId: string, entryId: string) =>
+    request<void>(`/api/v1/shortlists/${shortlistId}/players/${entryId}`, {
+      method: "DELETE",
+    }),
+  deleteShortlist: (shortlistId: string) =>
+    request<void>(`/api/v1/shortlists/${shortlistId}`, {
+      method: "DELETE",
+    }),
 };

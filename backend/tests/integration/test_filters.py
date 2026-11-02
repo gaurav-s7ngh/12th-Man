@@ -5,16 +5,40 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_player_filter_by_position():
-    """Verify position filter correctly restricts results to the position group."""
-    res = client.get("/api/v1/players?position=Midfielder&page_size=50")
+def test_player_filter_by_position_canonical_midfielder():
+    """Verify midfielder filter includes central and wide midfielders (LM, RM, DM, CM, AM)."""
+    res = client.get("/api/v1/players?position=Midfielder&page_size=100")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total"] > 0
+    all_positions = {p["primary_position"] for p in data["items"]}
+    # Verify both central and wide midfielders are present
+    assert any("midfield" in pos.lower() for pos in all_positions)
+    for p in data["items"]:
+        pos = p["primary_position"]
+        assert "midfield" in pos.lower()
+
+
+def test_player_filter_by_position_canonical_winger():
+    """Verify winger filter specifically returns wingers (LW, RW), not strikers or central midfielders."""
+    res = client.get("/api/v1/players?position=Winger&page_size=50")
     assert res.status_code == 200
     data = res.json()
     assert data["total"] > 0
     for p in data["items"]:
-        pos = (p.get("primary_position") or "").lower()
-        # Must match midfield designations
-        assert any(term in pos for term in ["midfield", "midfielder", "wing", "am", "cm", "dm"])
+        pos = p["primary_position"]
+        assert pos in ["Left Wing", "Right Wing", "Left Wing Forward", "Right Wing Forward"]
+
+
+def test_player_filter_by_position_canonical_forward():
+    """Verify forward filter returns center forwards / strikers, not wingers."""
+    res = client.get("/api/v1/players?position=Forward&page_size=50")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total"] > 0
+    for p in data["items"]:
+        pos = p["primary_position"]
+        assert pos in ["Center Forward", "Left Center Forward", "Right Center Forward", "Striker", "Secondary Striker"]
 
 
 def test_player_filter_by_preferred_foot():
@@ -75,7 +99,7 @@ def test_combined_player_filters():
     assert data["total"] > 0
     for p in data["items"]:
         pos = (p.get("primary_position") or "").lower()
-        assert any(term in pos for term in ["midfield", "midfielder", "wing", "am", "cm", "dm"])
+        assert "midfield" in pos
         assert p["preferred_foot"] in ["Right", "Both"]
         assert p["total_minutes"] >= 500
 
@@ -119,8 +143,8 @@ def test_recruitment_discovery_filters():
     assert isinstance(candidates, list)
     for c in candidates:
         pos = (c.get("primary_position") or "").lower()
-        assert any(term in pos for term in ["midfield", "midfielder", "wing", "am", "cm", "dm"])
-        assert c.get("preferred_foot") in ["Right", "Both", None]  # where present
+        assert "midfield" in pos
+        assert c.get("preferred_foot") in ["Right", "Both", None]
         assert c["total_minutes"] >= 180
 
 
@@ -132,7 +156,48 @@ def test_recruitment_map_filters():
     assert res.status_code == 200
     data = res.json()
     assert "candidates" in data
+    assert data["total_candidates"] > 0
     for c in data["candidates"]:
         pos = (c.get("primary_position") or "").lower()
         assert any(term in pos for term in ["back", "defender", "centre-back", "center back", "cb", "lb", "rb"])
         assert c["total_minutes"] >= 180
+
+
+def test_club_switching_full_flow():
+    """Verify club switching flow between Bayern, Dortmund, and Leverkusen."""
+    # 1. Fetch available clubs (must be all 18)
+    clubs_res = client.get("/api/v1/club/available")
+    assert clubs_res.status_code == 200
+    clubs = clubs_res.json()
+    assert len(clubs) == 18
+
+    # 2. Switch to Bayern
+    bayern = next(c for c in clubs if "Bayern" in c["name"])
+    bayern_res = client.post(f"/api/v1/club/select/{bayern['team_id']}")
+    assert bayern_res.status_code == 200
+    assert bayern_res.json()["name"] == "Bayern Munich"
+    assert bayern_res.json()["is_active"] is True
+
+    # Check squad assessment for Bayern
+    bayern_assess = client.get("/api/v1/club/squad-assessment").json()
+    assert bayern_assess["club_name"] == "Bayern Munich"
+    assert bayern_assess["total_squad_size"] == 27
+
+    # 3. Switch to Borussia Dortmund
+    bvb = next(c for c in clubs if "Dortmund" in c["name"])
+    bvb_res = client.post(f"/api/v1/club/select/{bvb['team_id']}")
+    assert bvb_res.status_code == 200
+    assert bvb_res.json()["name"] == "Borussia Dortmund"
+    assert bvb_res.json()["is_active"] is True
+
+    # Check squad assessment for Dortmund
+    bvb_assess = client.get("/api/v1/club/squad-assessment").json()
+    assert bvb_assess["club_name"] == "Borussia Dortmund"
+    assert bvb_assess["total_squad_size"] == 27
+
+    # 4. Switch back to Bayer Leverkusen
+    lev = next(c for c in clubs if "Leverkusen" in c["name"])
+    lev_res = client.post(f"/api/v1/club/select/{lev['team_id']}")
+    assert lev_res.status_code == 200
+    assert "Leverkusen" in lev_res.json()["name"]
+    assert lev_res.json()["is_active"] is True

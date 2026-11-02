@@ -187,3 +187,57 @@ def test_shortlist_lifecycle():
     detail = detail_res.json()
     assert len(detail["players"]) >= 1
     assert detail["players"][0]["player_id"] == player_id
+    entry_id = detail["players"][0]["id"]
+    # Verify normalized initial status
+    assert detail["players"][0]["recruitment_status"] == "Watchlist"
+
+    # Advance 1: Watchlist -> Shortlist
+    adv1 = client.post(f"/api/v1/shortlists/{sl_id}/players/{entry_id}/advance")
+    assert adv1.status_code == 200
+    assert adv1.json()["recruitment_status"] == "Shortlist"
+
+    # Advance 2: Shortlist -> Scout Review
+    adv2 = client.post(f"/api/v1/shortlists/{sl_id}/players/{entry_id}/advance")
+    assert adv2.status_code == 200
+    assert adv2.json()["recruitment_status"] == "Scout Review"
+
+    # Advance 3: Scout Review -> Follow-up
+    adv3 = client.post(f"/api/v1/shortlists/{sl_id}/players/{entry_id}/advance")
+    assert adv3.status_code == 200
+    assert adv3.json()["recruitment_status"] == "Follow-up"
+
+    # Advance 4: Follow-up -> Final Decision
+    adv4 = client.post(f"/api/v1/shortlists/{sl_id}/players/{entry_id}/advance")
+    assert adv4.status_code == 200
+    assert adv4.json()["recruitment_status"] == "Final Decision"
+
+    # Advance 5: Cannot advance past Final Decision
+    adv5 = client.post(f"/api/v1/shortlists/{sl_id}/players/{entry_id}/advance")
+    assert adv5.status_code == 200
+    assert adv5.json()["recruitment_status"] == "Final Decision"
+
+    # Stage update via PATCH (Drag-and-drop support)
+    patch_res = client.patch(
+        f"/api/v1/shortlists/{sl_id}/players/{entry_id}",
+        json={"recruitment_status": "Shortlist", "notes": "Moved back for re-evaluation"},
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.json()["recruitment_status"] == "Shortlist"
+    assert patch_res.json()["notes"] == "Moved back for re-evaluation"
+
+    # Remove player from shortlist
+    del_p_res = client.delete(f"/api/v1/shortlists/{sl_id}/players/{entry_id}")
+    assert del_p_res.status_code == 204
+
+    # Verify player is gone
+    detail_res2 = client.get(f"/api/v1/shortlists/{sl_id}")
+    assert detail_res2.status_code == 200
+    assert len(detail_res2.json()["players"]) == 0
+
+    # Delete shortlist
+    del_sl_res = client.delete(f"/api/v1/shortlists/{sl_id}")
+    assert del_sl_res.status_code == 204
+
+    # Verify shortlist is gone
+    get_sl_res = client.get(f"/api/v1/shortlists/{sl_id}")
+    assert get_sl_res.status_code == 404

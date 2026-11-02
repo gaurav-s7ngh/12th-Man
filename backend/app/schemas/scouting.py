@@ -42,7 +42,12 @@ class ScoutingReportRead(BaseModel):
 class ShortlistPlayerCreate(BaseModel):
     player_id: uuid.UUID
     notes: Optional[str] = None
-    recruitment_status: str = "Target"
+    recruitment_status: str = "Watchlist"
+
+
+class ShortlistPlayerUpdate(BaseModel):
+    recruitment_status: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ShortlistPlayerRead(BaseModel):

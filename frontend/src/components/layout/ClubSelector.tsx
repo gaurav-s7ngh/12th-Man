@@ -52,7 +52,12 @@ export const ClubSelector: React.FC = () => {
     queryFn: () => api.getClub(),
   });
 
-  const { data: availableClubs = [], isLoading: loadingAvailable } = useQuery({
+  const {
+    data: availableClubs = [],
+    isLoading: loadingAvailable,
+    error: availableError,
+    refetch: refetchClubs,
+  } = useQuery({
     queryKey: ["availableClubs"],
     queryFn: api.getAvailableClubs,
   });
@@ -89,9 +94,9 @@ export const ClubSelector: React.FC = () => {
     };
   }, [isOpen]);
 
-  const activeClubName = club?.name || "Bayer 04 Leverkusen";
+  const activeClubName = club?.name || "Active Club";
   const activeBadge = getClubBadge(activeClubName);
-  const activeFormation = club?.primary_formation || "3-4-2-1";
+  const activeFormation = club?.primary_formation || "4-3-3";
 
   const filteredClubs = availableClubs.filter((item: AvailableClubItem) => {
     if (!filterQuery.trim()) return true;
@@ -154,7 +159,7 @@ export const ClubSelector: React.FC = () => {
               </div>
             </div>
             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              {availableClubs.length || 18} Clubs
+              {availableClubs.length} Clubs
             </span>
           </div>
 
@@ -179,6 +184,17 @@ export const ClubSelector: React.FC = () => {
               <div className="p-6 text-center text-xs text-[#87958B] flex items-center justify-center gap-2">
                 <RefreshCw className="h-4 w-4 animate-spin text-emerald-400" />
                 Loading Bundesliga clubs...
+              </div>
+            ) : availableError ? (
+              <div className="p-6 text-center text-xs text-rose-400 space-y-2">
+                <div>Failed to connect to club intelligence service.</div>
+                <button
+                  type="button"
+                  onClick={() => refetchClubs()}
+                  className="px-3 py-1 rounded bg-[#080F0B] border border-rose-500/40 text-rose-300 text-[10px] uppercase font-mono hover:bg-rose-950/40"
+                >
+                  Retry Loading
+                </button>
               </div>
             ) : filteredClubs.length === 0 ? (
               <div className="p-6 text-center text-xs text-[#87958B]">

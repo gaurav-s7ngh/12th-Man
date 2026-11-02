@@ -7,6 +7,7 @@ import { SectionHeader } from "../components/layout/SectionHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ErrorMessage } from "../components/common/ErrorMessage";
 import { PositionBadge } from "../components/football/PositionBadge";
+import { formatMinutes } from "../lib/utils";
 import { ModalDialog } from "../components/common/ModalDialog";
 import {
   BookmarkPlus,
@@ -70,19 +71,25 @@ export const RecruitmentPage: React.FC = () => {
 
   // Note: Age filtering is disabled because birth_date is not provided in the StatsBomb open dataset
 
-  // Map short position codes to group names the backend understands
+  // Map short position codes to canonical groups
   const positionGroupMap: Record<string, string> = {
     GK: "Goalkeeper",
     CB: "Defender",
     LB: "Defender",
     RB: "Defender",
+    WB: "Defender",
+    LWB: "Defender",
+    RWB: "Defender",
     DM: "Midfielder",
     CM: "Midfielder",
     AM: "Midfielder",
-    LW: "Forward",
-    RW: "Forward",
+    LM: "Midfielder",
+    RM: "Midfielder",
+    LW: "Winger",
+    RW: "Winger",
     ST: "Forward",
     CF: "Forward",
+    SS: "Forward",
   };
   const mappedPosition =
     selectedPosition && selectedPosition !== "Any"
@@ -227,12 +234,16 @@ export const RecruitmentPage: React.FC = () => {
                   className="w-full bg-[#080F0B] border border-[#1D3025] rounded p-2 text-[#E8EDE9] font-mono focus:border-emerald-500 outline-none"
                 >
                   <option value="">Any Position</option>
-                  <option value="CM">CM (Central Midfield)</option>
-                  <option value="DM">DM (Defensive Midfield)</option>
-                  <option value="AM">AM (Attacking Midfield)</option>
+                  <option value="GK">GK (Goalkeeper)</option>
                   <option value="CB">CB (Center Back)</option>
-                  <option value="WB">WB (Wingback)</option>
-                  <option value="CF">CF (Center Forward)</option>
+                  <option value="LB">LB / RB (Fullback)</option>
+                  <option value="WB">LWB / RWB (Wingback)</option>
+                  <option value="DM">DM (Defensive Midfield)</option>
+                  <option value="CM">CM (Central Midfield)</option>
+                  <option value="AM">AM (Attacking Midfield)</option>
+                  <option value="LM">LM / RM (Wide Midfield)</option>
+                  <option value="LW">LW / RW (Winger)</option>
+                  <option value="CF">CF / ST (Center Forward)</option>
                 </select>
               </div>
 
@@ -524,8 +535,8 @@ export const RecruitmentPage: React.FC = () => {
                       <td className="px-4 py-3 text-right text-[#87958B]">
                         {cand.age || "—"}
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-[#E8EDE9]">
-                        {cand.total_minutes}m
+                      <td className="px-4 py-3 text-right font-bold text-[#E8EDE9] tabular-nums whitespace-nowrap">
+                        {formatMinutes(cand.total_minutes)}
                       </td>
                       <td className="px-4 py-3 max-w-xs">
                         <ul className="space-y-0.5 text-[#87958B]">

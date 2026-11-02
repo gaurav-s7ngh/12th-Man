@@ -2,6 +2,7 @@ import React from "react";
 import type { PlayerDetail } from "../../types/football";
 import { PositionBadge } from "./PositionBadge";
 import { Shield, Clock, Award, Activity } from "lucide-react";
+import { formatMinutes } from "../../lib/utils";
 
 interface PlayerIdentityHeaderProps {
   player: PlayerDetail;
@@ -84,10 +85,10 @@ export const PlayerIdentityHeader: React.FC<PlayerIdentityHeaderProps> = ({
             <div className="px-3 py-1.5 rounded bg-[#080F0B] border border-[#1D3025] text-center">
               <div className="text-[9px] font-mono uppercase text-[#87958B] flex items-center justify-center gap-1">
                 <Clock className="h-2.5 w-2.5 text-[#10B981]" />
-                Minutes
+                Playing Time
               </div>
-              <div className="text-sm font-mono font-bold text-[#E8EDE9] tabular-nums mt-0.5">
-                {player.total_minutes}'
+              <div className="text-xs font-mono font-bold text-[#E8EDE9] tabular-nums mt-0.5 whitespace-nowrap">
+                {formatMinutes(player.total_minutes)}
               </div>
             </div>
 

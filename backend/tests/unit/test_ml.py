@@ -17,6 +17,8 @@ def test_feature_extractor_mapping():
     assert FeatureExtractor.map_position_cohort("Center Defensive Midfield") == PositionCohort.MIDFIELDER
     assert FeatureExtractor.map_position_cohort("Center Forward") == PositionCohort.FORWARD
     assert FeatureExtractor.map_position_cohort("Goalkeeper") == PositionCohort.GOALKEEPER
+    assert FeatureExtractor.map_position_cohort("Left Wing") == PositionCohort.WINGER
+    assert FeatureExtractor.map_position_cohort("Right Wing") == PositionCohort.WINGER
 
 
 def test_similarity_and_clustering_synthetic():

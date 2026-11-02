@@ -5,6 +5,10 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.positions import (
+    CanonicalPositionGroup,
+    normalize_position,
+)
 from app.models.club import RecruitmentNeed
 from app.models.football import Match, Player, PlayerAppearance, PlayerMatchStats, Competition, Season, Team
 from app.repositories.club import ClubRepository
@@ -90,17 +94,14 @@ TACTICAL_ROLE_SPECS = {
 def _matches_position_group(player_pos: Optional[str], target_group: str) -> bool:
     if not player_pos:
         return False
-    pp = player_pos.lower()
+    player_canonical = normalize_position(player_pos)
+    target_canonical = normalize_position(target_group)
+    if target_canonical and player_canonical:
+        return player_canonical == target_canonical
+
+    # Fallback to direct name comparison if not mapped to a group
     tg = target_group.strip().lower()
-    if tg in ("midfield", "midfielder", "midfielders", "cm", "dm", "am"):
-        return "midfield" in pp
-    if tg in ("defender", "defenders", "defence", "defense", "cb", "fb", "lb", "rb", "wing back"):
-        return "back" in pp or "defender" in pp
-    if tg in ("forward", "forwards", "striker", "cf", "winger", "wing", "lw", "rw"):
-        return "forward" in pp or "wing" in pp or "striker" in pp
-    if tg in ("goalkeeper", "goalkeepers", "gk", "keeper"):
-        return "goalkeeper" in pp
-    return tg in pp
+    return tg in player_pos.lower()
 
 
 class RecruitmentService:
@@ -378,7 +379,7 @@ class RecruitmentService:
                 squad_player_ids = set()
         except Exception:
             assessment = None
-            club_name = "Bayer 04 Leverkusen"
+            club_name = "Active Club"
             squad_configured = False
             vulnerabilities = []
             squad_gaps = []

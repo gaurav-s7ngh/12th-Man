@@ -100,12 +100,15 @@ class SquadService:
 
         target_team_id = team_id or club.linked_team_id
         if not target_team_id:
-            # Fallback to Bayer Leverkusen or any team if not set
-            leverkusen = self.db.execute(
-                select(Team).where(Team.name.ilike("%Leverkusen%"))
+            # Match team by club name
+            first_word = club.name.split()[0] if club.name else ""
+            matched_team = self.db.execute(
+                select(Team).where(Team.name.ilike(f"%{first_word}%"))
             ).scalars().first()
-            if leverkusen:
-                target_team_id = leverkusen.id
+            if matched_team:
+                target_team_id = matched_team.id
+                club.linked_team_id = target_team_id
+                self.db.commit()
 
         # Query all players appearing for this team
         appearances = self.db.execute(

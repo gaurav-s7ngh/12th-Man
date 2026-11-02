@@ -91,7 +91,7 @@ export const OverviewPage: React.FC = () => {
 
           {/* Massive Condensed Club Headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight text-[#E8EDE9] leading-none">
-            {clubData?.name || "BAYER 04 LEVERKUSEN"}
+            {clubData?.name?.toUpperCase() || "ACTIVE BUNDESLIGA CLUB"}
           </h1>
 
           {/* 4 Mission-Critical KPIs matching Reference Video */}
@@ -178,61 +178,80 @@ export const OverviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Profile Depth vs Numerical Depth Dot-Stack Visualizer matching Video */}
+      {/* Profile Depth vs Numerical Depth Visualizer */}
       <div className="rounded-lg border border-[#1D3025] bg-[#080F0B] p-6 space-y-6">
-        <div>
-          <h3 className="text-xl sm:text-2xl font-black uppercase text-[#E8EDE9] tracking-tight">
-            SEVEN MIDFIELDERS. ZERO BOX-TO-BOX.
-          </h3>
-          <p className="text-xs font-mono text-[#87958B] mt-1">
-            Numerical depth is not profile depth. A squad can be numerically crowded while lacking essential functional attributes.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1D3025] pb-3">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-black uppercase text-[#E8EDE9] tracking-tight">
+              {(clubData?.name || "CLUB").toUpperCase()} SQUAD DEPTH
+            </h3>
+            <p className="text-xs font-mono text-[#87958B] mt-1">
+              Active tactical system: <strong className="text-emerald-400">{clubData?.primary_formation || "3-4-2-1"}</strong> ({clubData?.manager_name || "Head Coach"}) · {depthCategories.length} Positional Categories Analyzed
+            </p>
+          </div>
+          <Link
+            to="/squad"
+            className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1 self-start sm:self-auto"
+          >
+            Full Squad Room &rarr;
+          </Link>
         </div>
 
-        {/* Dot Stack Columns */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-2">
-          {/* Creative Midfielders */}
-          <div className="space-y-2">
-            <div className="text-2xl font-black font-mono text-sky-400">3</div>
-            <div className="flex flex-col gap-1.5">
-              <span className="h-4 w-4 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
-              <span className="h-4 w-4 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
-              <span className="h-4 w-4 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
-            </div>
-            <div className="text-xs font-mono font-medium text-[#E8EDE9] pt-1">Creative Creator</div>
-            <div className="text-[10px] font-mono text-[#87958B]">Wirtz, Hofmann, Adli</div>
-          </div>
+        {/* Dynamic Category Columns */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-1">
+          {depthCategories.map((cat) => {
+            const isVoid = cat.status === "Critical Void";
+            const isThin = cat.status === "Thin";
+            const colorClass = isVoid
+              ? "text-rose-400"
+              : isThin
+              ? "text-amber-400"
+              : "text-emerald-400";
+            const dotColorClass = isVoid
+              ? "border-2 border-dashed border-rose-500 bg-rose-500/10 animate-pulse"
+              : isThin
+              ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]"
+              : "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
 
-          {/* Deep-lying Playmaker */}
-          <div className="space-y-2">
-            <div className="text-2xl font-black font-mono text-purple-400">2</div>
-            <div className="flex flex-col gap-1.5">
-              <span className="h-4 w-4 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]" />
-              <span className="h-4 w-4 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]" />
-            </div>
-            <div className="text-xs font-mono font-medium text-[#E8EDE9] pt-1">Deep-Lying Pivot</div>
-            <div className="text-[10px] font-mono text-[#87958B]">Xhaka, Puerta</div>
-          </div>
+            return (
+              <div key={cat.category} className="space-y-2 p-3 rounded-lg bg-[#0D1C15]/60 border border-[#1D3025]/60 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between font-mono">
+                    <span className={`text-2xl font-black ${colorClass} tabular-nums`}>
+                      {cat.current_count}
+                    </span>
+                    <span className="text-[10px] text-[#87958B] uppercase">
+                      Target: {cat.target_slots}
+                    </span>
+                  </div>
 
-          {/* Ball Winner / Destroyer */}
-          <div className="space-y-2">
-            <div className="text-2xl font-black font-mono text-amber-400">1</div>
-            <div className="flex flex-col gap-1.5">
-              <span className="h-4 w-4 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-            </div>
-            <div className="text-xs font-mono font-medium text-[#E8EDE9] pt-1">Ball Winner</div>
-            <div className="text-[10px] font-mono text-[#87958B]">Palacios</div>
-          </div>
+                  {/* Visual Dot Stack */}
+                  <div className="flex flex-wrap gap-1.5 my-2">
+                    {cat.current_count > 0 ? (
+                      Array.from({ length: Math.min(6, cat.current_count) }).map((_, i) => (
+                        <span key={i} className={`h-3 w-3 rounded-full ${dotColorClass}`} />
+                      ))
+                    ) : (
+                      <span className="h-3 w-3 rounded-full border-2 border-dashed border-rose-500 bg-rose-500/10 animate-pulse" />
+                    )}
+                  </div>
 
-          {/* Box-to-Box GAP */}
-          <div className="space-y-2">
-            <div className="text-2xl font-black font-mono text-rose-500">0</div>
-            <div className="flex flex-col gap-1.5">
-              <span className="h-4 w-4 rounded-full border-2 border-dashed border-rose-500 bg-rose-500/10 animate-pulse" />
-            </div>
-            <div className="text-xs font-mono font-bold text-rose-400 pt-1">Box-to-Box</div>
-            <div className="text-[10px] font-mono text-rose-400/80">CRITICAL VACANCY</div>
-          </div>
+                  <div className="text-xs font-mono font-bold text-[#E8EDE9] line-clamp-1 mt-1">
+                    {cat.category}
+                  </div>
+                  <div className={`text-[10px] font-mono uppercase font-bold mt-0.5 ${colorClass}`}>
+                    {cat.status}
+                  </div>
+                </div>
+
+                <div className="text-[10px] font-mono text-[#87958B] truncate pt-2 border-t border-[#1D3025]/40" title={cat.players.map((p) => p.name).join(", ")}>
+                  {cat.players.length > 0
+                    ? cat.players.slice(0, 2).map((p) => p.name.split(" ").slice(-1)[0]).join(", ")
+                    : "No recorded players"}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -175,20 +175,62 @@ The application will be accessible in your browser at `http://localhost:5173`.
 
 ---
 
+## Canonical Position Normalisation
+
+To ensure reliable filtering and recruit evaluation, the platform employs a centralized 5-group canonical mapping across Backend, Frontend, and Machine Learning systems:
+
+| Canonical Group | Abbr | Included StatsBomb Positions / Codes |
+|---|---|---|
+| **Goalkeeper** | `GK` | Goalkeeper |
+| **Defender** | `DEF` | Center Back, Left Center Back, Right Center Back, Left Back, Right Back, Left Wing Back, Right Wing Back (`CB`, `LCB`, `RCB`, `LB`, `RB`, `LWB`, `RWB`) |
+| **Midfielder** | `MID` | Defensive Midfield, Center Midfield, Attacking Midfield, Left Midfield, Right Midfield (`CDM`, `DM`, `CM`, `LCM`, `RCM`, `CAM`, `AM`, `LM`, `RM`) |
+| **Winger** | `WNG` | Left Wing, Right Wing, Left Wing Forward, Right Wing Forward (`LW`, `RW`, `LWF`, `RWF`) |
+| **Forward** | `FWD` | Center Forward, Left Center Forward, Right Center Forward, Secondary Striker, Striker (`ST`, `CF`, `SS`, `LF`, `RF`) |
+
+- Wide midfielders (`LM`, `RM`) are classified under **Midfielder**.
+- Wingers (`LW`, `RW`) are classified under **Winger** and are never conflated with center forwards.
+- Wing-backs (`LWB`, `RWB`) remain in **Defender**.
+- Substitute players with unrecorded tactical starting slots are labeled as `"Not recorded"` rather than fabricated.
+
+---
+
 ## Automated Testing
 
 ```bash
-# Backend pytest suite (API integration, repository filters, ML pipelines)
+# 1. Backend pytest suite (API integration, repository filters, ML pipelines)
 cd backend
 .\venv\Scripts\pytest.exe -v
 
-# Frontend TypeScript check and production bundle build
+# 2. End-to-end multi-club workflow test script
+python scripts/e2e_verification.py
+
+# 3. Full 8-stage product journey verification script
+python scripts/test_full_journey.py
+
+# 4. Frontend TypeScript check and production bundle build
 cd frontend
 npm run build
 
-# Frontend ESLint verification
+# 5. Frontend ESLint verification
 npm run lint
 ```
+
+---
+
+## Troubleshooting
+
+- **Port 8000 Conflict**: If the FastAPI server fails to start with `[Errno 10048] address already in use`, check for orphaned Python processes:
+  ```powershell
+  Get-NetTCPConnection -LocalPort 8000 | Select-Object OwningProcess
+  Stop-Process -Id <PID> -Force
+  ```
+- **Database Connection Check**:
+  Query the health endpoint to confirm PostgreSQL connectivity:
+  ```bash
+  curl http://localhost:8000/api/v1/db-health
+  ```
+  Expected response: `{"status":"ok","database":"connected"}`.
+- **Frontend Cache**: If switching clubs does not immediately update, hard-refresh the browser (`Ctrl+F5`) to clear stale service worker or browser caches. TanStack Query automatically invalidates cache keys upon club selection.
 
 ---
 

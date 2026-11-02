@@ -9,11 +9,16 @@ class PositionCohort(str, Enum):
     GOALKEEPER = "Goalkeeper"
     DEFENDER = "Defender"
     MIDFIELDER = "Midfielder"
+    WINGER = "Winger"
     FORWARD = "Forward"
 
 
 POSITION_MAPPING = {
+    # Goalkeeper
     "Goalkeeper": PositionCohort.GOALKEEPER,
+    "GK": PositionCohort.GOALKEEPER,
+
+    # Defender: CB, LCB, RCB, LB, RB, LWB, RWB
     "Left Back": PositionCohort.DEFENDER,
     "Right Back": PositionCohort.DEFENDER,
     "Center Back": PositionCohort.DEFENDER,
@@ -21,6 +26,13 @@ POSITION_MAPPING = {
     "Right Center Back": PositionCohort.DEFENDER,
     "Left Wing Back": PositionCohort.DEFENDER,
     "Right Wing Back": PositionCohort.DEFENDER,
+    "CB": PositionCohort.DEFENDER,
+    "LB": PositionCohort.DEFENDER,
+    "RB": PositionCohort.DEFENDER,
+    "LWB": PositionCohort.DEFENDER,
+    "RWB": PositionCohort.DEFENDER,
+
+    # Midfielder: CDM, DM, CM, LCM, RCM, CAM, AM, LM, RM
     "Defensive Midfield": PositionCohort.MIDFIELDER,
     "Center Defensive Midfield": PositionCohort.MIDFIELDER,
     "Left Defensive Midfield": PositionCohort.MIDFIELDER,
@@ -30,15 +42,38 @@ POSITION_MAPPING = {
     "Right Center Midfield": PositionCohort.MIDFIELDER,
     "Left Midfield": PositionCohort.MIDFIELDER,
     "Right Midfield": PositionCohort.MIDFIELDER,
-    "Center Attacking Midfield": PositionCohort.FORWARD,
-    "Left Attacking Midfield": PositionCohort.FORWARD,
-    "Right Attacking Midfield": PositionCohort.FORWARD,
-    "Left Wing": PositionCohort.FORWARD,
-    "Right Wing": PositionCohort.FORWARD,
+    "Center Attacking Midfield": PositionCohort.MIDFIELDER,
+    "Left Attacking Midfield": PositionCohort.MIDFIELDER,
+    "Right Attacking Midfield": PositionCohort.MIDFIELDER,
+    "CDM": PositionCohort.MIDFIELDER,
+    "DM": PositionCohort.MIDFIELDER,
+    "CM": PositionCohort.MIDFIELDER,
+    "CAM": PositionCohort.MIDFIELDER,
+    "AM": PositionCohort.MIDFIELDER,
+    "LM": PositionCohort.MIDFIELDER,
+    "RM": PositionCohort.MIDFIELDER,
+
+    # Winger: LW, RW, LWF, RWF
+    "Left Wing": PositionCohort.WINGER,
+    "Right Wing": PositionCohort.WINGER,
+    "Left Wing Forward": PositionCohort.WINGER,
+    "Right Wing Forward": PositionCohort.WINGER,
+    "LW": PositionCohort.WINGER,
+    "RW": PositionCohort.WINGER,
+    "LWF": PositionCohort.WINGER,
+    "RWF": PositionCohort.WINGER,
+
+    # Forward: ST, CF, SS, LF, RF
     "Center Forward": PositionCohort.FORWARD,
     "Left Center Forward": PositionCohort.FORWARD,
     "Right Center Forward": PositionCohort.FORWARD,
+    "Left Forward": PositionCohort.FORWARD,
+    "Right Forward": PositionCohort.FORWARD,
     "Secondary Striker": PositionCohort.FORWARD,
+    "Striker": PositionCohort.FORWARD,
+    "CF": PositionCohort.FORWARD,
+    "ST": PositionCohort.FORWARD,
+    "SS": PositionCohort.FORWARD,
 }
 
 FEATURE_COLUMNS = [
@@ -71,13 +106,31 @@ class FeatureExtractor:
     def map_position_cohort(position_str: Optional[str]) -> PositionCohort:
         if not position_str:
             return PositionCohort.MIDFIELDER
+        
+        pos_clean = position_str.strip().lower()
+
+        # 1. Exact match (case-insensitive) against dictionary keys
         for k, v in POSITION_MAPPING.items():
-            if k.lower() in position_str.lower():
+            if k.lower() == pos_clean:
                 return v
-        if "back" in position_str.lower() or "defen" in position_str.lower():
-            return PositionCohort.DEFENDER
-        if "forward" in position_str.lower() or "wing" in position_str.lower() or "striker" in position_str.lower():
+
+        # 2. Check longer keys first to avoid short substring collisions (e.g. 'rw' matching 'forward')
+        for k, v in sorted(POSITION_MAPPING.items(), key=lambda x: len(x[0]), reverse=True):
+            if len(k) > 2 and k.lower() in pos_clean:
+                return v
+
+        # 3. Fallback by semantic keywords
+        if "goalkeeper" in pos_clean or pos_clean == "gk":
+            return PositionCohort.GOALKEEPER
+        if "wing" in pos_clean:
+            return PositionCohort.WINGER
+        if "forward" in pos_clean or "striker" in pos_clean:
             return PositionCohort.FORWARD
+        if "back" in pos_clean or "defen" in pos_clean:
+            return PositionCohort.DEFENDER
+        if "midfield" in pos_clean:
+            return PositionCohort.MIDFIELDER
+
         return PositionCohort.MIDFIELDER
 
     def build_feature_dataframe(self, player_stats_records: List[Dict[str, Any]]) -> pd.DataFrame:

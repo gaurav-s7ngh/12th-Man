@@ -62,3 +62,24 @@ class ScoutingService:
             notes=data.notes,
             status=data.recruitment_status,
         )
+
+    def update_shortlist_player(
+        self,
+        entry_id: uuid.UUID,
+        status: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> Optional[ShortlistPlayer]:
+        return self.repo.update_shortlist_player(
+            entry_id=entry_id,
+            status=status,
+            notes=notes,
+        )
+
+    def advance_shortlist_player(self, entry_id: uuid.UUID) -> Optional[ShortlistPlayer]:
+        return self.repo.advance_shortlist_player(entry_id)
+
+    def remove_player_from_shortlist(self, entry_id: uuid.UUID) -> bool:
+        return self.repo.remove_player_from_shortlist(entry_id)
+
+    def delete_shortlist(self, shortlist_id: uuid.UUID) -> bool:
+        return self.repo.delete_shortlist(shortlist_id)

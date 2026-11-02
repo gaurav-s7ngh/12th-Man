@@ -15,6 +15,9 @@ import {
   Flag,
   FileCheck,
   User,
+  Trash2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import type { ShortlistCreate } from "../types/scouting";
 
@@ -26,11 +29,22 @@ interface KanbanStage {
 
 const KANBAN_STAGES: KanbanStage[] = [
   { id: "Watchlist", label: "WATCHLIST", icon: Eye },
-  { id: "Shortlisted", label: "SHORTLIST", icon: Clock },
+  { id: "Shortlist", label: "SHORTLIST", icon: Clock },
   { id: "Scout Review", label: "SCOUT REVIEW", icon: BookmarkCheck },
   { id: "Follow-up", label: "FOLLOW-UP", icon: Flag },
   { id: "Final Decision", label: "FINAL DECISION", icon: FileCheck },
 ];
+
+const normalizeStage = (status?: string): string => {
+  if (!status) return "Watchlist";
+  const s = status.trim().toLowerCase();
+  if (s === "target" || s === "targeted" || s === "watchlist") return "Watchlist";
+  if (s === "shortlist" || s === "shortlisted") return "Shortlist";
+  if (s === "scout review" || s === "scout_review" || s === "review" || s === "in review") return "Scout Review";
+  if (s === "follow-up" || s === "follow up" || s === "followup") return "Follow-up";
+  if (s === "final decision" || s === "final_decision" || s === "decision" || s === "approved") return "Final Decision";
+  return status;
+};
 
 export const ShortlistsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -39,6 +53,9 @@ export const ShortlistsPage: React.FC = () => {
   const [newListName, setNewListName] = useState("");
   const [newListDesc, setNewListDesc] = useState("");
   const [newListOwner, setNewListOwner] = useState("Chief Scout");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [advancingId, setAdvancingId] = useState<string | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
   // Query all shortlists
   const { data: shortlists, isLoading, error } = useQuery({
@@ -65,6 +82,59 @@ export const ShortlistsPage: React.FC = () => {
       setNewListName("");
       setNewListDesc("");
     },
+    onError: (err: Error) => {
+      setActionError(err.message || "Failed to create pipeline");
+    },
+  });
+
+  // Advance player mutation
+  const advanceMutation = useMutation({
+    mutationFn: (entryId: string) => api.advanceShortlistPlayer(effectiveShortlistId, entryId),
+    onMutate: (entryId) => {
+      setAdvancingId(entryId);
+      setActionError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
+      queryClient.invalidateQueries({ queryKey: ["shortlists"] });
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || "Failed to advance candidate stage");
+    },
+    onSettled: () => {
+      setAdvancingId(null);
+    },
+  });
+
+  // Move candidate to specific stage (drag & drop)
+  const updateStageMutation = useMutation({
+    mutationFn: ({ entryId, status }: { entryId: string; status: string }) =>
+      api.updateShortlistPlayer(effectiveShortlistId, entryId, { recruitment_status: status }),
+    onMutate: () => {
+      setActionError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
+      queryClient.invalidateQueries({ queryKey: ["shortlists"] });
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || "Failed to update candidate stage");
+    },
+  });
+
+  // Remove player mutation
+  const removePlayerMutation = useMutation({
+    mutationFn: (entryId: string) => api.removePlayerFromShortlist(effectiveShortlistId, entryId),
+    onMutate: () => {
+      setActionError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
+      queryClient.invalidateQueries({ queryKey: ["shortlists"] });
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || "Failed to remove player from shortlist");
+    },
   });
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -78,11 +148,9 @@ export const ShortlistsPage: React.FC = () => {
   };
 
   const handleAdvance = (candidateId: string, currentStatus: string) => {
-    const currentIndex = KANBAN_STAGES.findIndex((s) => s.id.toLowerCase() === (currentStatus || "Watchlist").toLowerCase());
-    const nextStage = currentIndex < KANBAN_STAGES.length - 1 ? KANBAN_STAGES[currentIndex + 1].id : KANBAN_STAGES[0].id;
-    console.log(`Advancing candidate ${candidateId} to ${nextStage}`);
-    // Simulated advance trigger in frontend UI
-    queryClient.invalidateQueries({ queryKey: ["shortlistDetail", effectiveShortlistId] });
+    const normCurrent = normalizeStage(currentStatus);
+    if (normCurrent === "Final Decision") return;
+    advanceMutation.mutate(candidateId);
   };
 
   if (isLoading) {
@@ -126,6 +194,23 @@ export const ShortlistsPage: React.FC = () => {
         }
       />
 
+      {/* Action Error Banner */}
+      {actionError && (
+        <div className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg flex items-center justify-between text-xs text-red-300 font-mono">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-red-400 hover:text-red-200 text-xs uppercase underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Pipeline Switcher Tabs matching Video */}
       <div className="flex items-center justify-between border-b border-[#1D3025] pb-2 font-mono text-xs">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
@@ -136,7 +221,10 @@ export const ShortlistsPage: React.FC = () => {
             <button
               key={sl.id}
               type="button"
-              onClick={() => setSelectedShortlistId(sl.id)}
+              onClick={() => {
+                setSelectedShortlistId(sl.id);
+                setActionError(null);
+              }}
               className={`px-3 py-1.5 rounded transition-colors whitespace-nowrap cursor-pointer ${
                 effectiveShortlistId === sl.id
                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold"
@@ -156,24 +244,44 @@ export const ShortlistsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Kanban Board matching Video f_end_164.png */}
+      {/* Kanban Board */}
       {loadingDetail ? (
         <LoadingSpinner message="Loading candidate stage cards..." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start font-mono">
           {KANBAN_STAGES.map((stage, colIdx) => {
-            // Group candidates into stages or spread them for visualization
-            const colCandidates = candidates.filter((c, idx) => {
-              if (c.recruitment_status) {
-                return c.recruitment_status.toLowerCase() === stage.id.toLowerCase();
-              }
-              return (idx % KANBAN_STAGES.length) === colIdx;
-            });
+            const colCandidates = candidates.filter(
+              (c) => normalizeStage(c.recruitment_status) === stage.id
+            );
+            const isDragOver = dragOverStage === stage.id;
 
             return (
               <div
                 key={stage.id}
-                className="rounded-xl border border-[#1D3025] bg-[#0D1C15] p-3.5 space-y-3 min-h-[460px] flex flex-col justify-between"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dragOverStage !== stage.id) {
+                    setDragOverStage(stage.id);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  setDragOverStage((current) => (current === stage.id ? null : current));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverStage(null);
+                  const entryId = e.dataTransfer.getData("text/plain");
+                  if (entryId) {
+                    updateStageMutation.mutate({ entryId, status: stage.id });
+                  }
+                }}
+                className={`rounded-xl border p-3.5 space-y-3 min-h-[460px] flex flex-col justify-between transition-colors ${
+                  isDragOver
+                    ? "border-emerald-500 bg-emerald-950/20"
+                    : "border-[#1D3025] bg-[#0D1C15]"
+                }`}
               >
                 <div>
                   {/* Column Header */}
@@ -190,21 +298,42 @@ export const ShortlistsPage: React.FC = () => {
                   {/* Candidate Cards Stack */}
                   <div className="space-y-3 mt-3">
                     {colCandidates.map((cand) => {
+                      const isFinalStage = stage.id === "Final Decision";
+                      const isAdvancing = advancingId === cand.id;
+
                       return (
                         <div
                           key={cand.id}
-                          className="rounded-lg border border-[#1D3025] bg-[#080F0B] hover:border-emerald-500/50 p-4 space-y-2.5 transition-all shadow-md"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/plain", cand.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          className="rounded-lg border border-[#1D3025] bg-[#080F0B] hover:border-emerald-500/50 p-4 space-y-2.5 transition-all shadow-md cursor-grab active:cursor-grabbing"
                         >
                           {/* Player Identity */}
                           <div>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-1">
                               <Link
                                 to={cand.player ? `/players/${cand.player.id}` : "#"}
                                 className="font-black text-sm uppercase text-[#E8EDE9] hover:text-emerald-400 block truncate"
                               >
                                 {cand.player?.name || "Player Profile"}
                               </Link>
-                              <User className="h-3.5 w-3.5 text-[#87958B]" />
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removePlayerMutation.mutate(cand.id);
+                                  }}
+                                  title="Remove player from pipeline"
+                                  className="p-1 rounded text-[#87958B] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                                <User className="h-3.5 w-3.5 text-[#87958B]" />
+                              </div>
                             </div>
                             <div className="text-[10px] text-[#87958B]">
                               {cand.player?.primary_position || "Midfielder"} · {cand.player?.nationality || "Germany"}
@@ -228,18 +357,32 @@ export const ShortlistsPage: React.FC = () => {
                             TARGET IN BUNDESLIGA PIPELINE
                           </div>
 
-                          {/* Scout Note input / view */}
+                          {/* Scout Note */}
                           <div className="text-[10px] text-[#87958B] italic bg-[#050A08] p-1.5 rounded border border-[#1D3025]/60 truncate">
                             {cand.notes || "No scouting notes recorded"}
                           </div>
 
-                          {/* Advance Button matching Video */}
+                          {/* Advance Button */}
                           <button
                             type="button"
+                            disabled={isFinalStage || isAdvancing}
                             onClick={() => handleAdvance(cand.id, stage.id)}
-                            className="w-full py-1.5 rounded bg-[#12251B] hover:bg-[#1D3025] text-center text-[10px] font-bold text-[#E8EDE9] hover:text-emerald-400 border border-[#1D3025] uppercase transition-colors"
+                            className={`w-full py-1.5 rounded text-center text-[10px] font-bold uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                              isFinalStage
+                                ? "bg-[#080F0B] text-[#87958B]/50 border border-[#1D3025] cursor-not-allowed"
+                                : "bg-[#12251B] hover:bg-[#1D3025] text-[#E8EDE9] hover:text-emerald-400 border border-[#1D3025] cursor-pointer"
+                            }`}
                           >
-                            ADVANCE ›
+                            {isAdvancing ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
+                                <span>ADVANCING...</span>
+                              </>
+                            ) : isFinalStage ? (
+                              <span>FINAL DECISION REACHED</span>
+                            ) : (
+                              <span>ADVANCE ›</span>
+                            )}
                           </button>
                         </div>
                       );
@@ -307,14 +450,14 @@ export const ShortlistsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="px-3 py-1.5 text-[#87958B] hover:text-[#E8EDE9]"
+                className="px-3 py-1.5 text-[#87958B] hover:text-[#E8EDE9] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={createMutation.isPending || !newListName.trim()}
-                className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050A08] font-bold rounded"
+                className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#050A08] font-bold rounded cursor-pointer"
               >
                 {createMutation.isPending ? "Creating..." : "Create Pipeline"}
               </button>

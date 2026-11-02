@@ -1,5 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import {
+  getPositionCode,
+  normalizePosition,
+  formatMinutes,
+  type CanonicalPosition,
+  type PositionCode,
+} from "./positions";
+
+export { formatMinutes, normalizePosition, getPositionCode };
+export type { CanonicalPosition, PositionCode };
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -26,34 +36,20 @@ export function formatNumber(val?: number | null): string {
  * rather than guessing or fabricating.
  */
 export function formatPosition(pos?: string | null): string {
-  if (!pos || pos.trim() === "" || pos === "Unspecified" || pos === "None") {
+  if (!pos || pos.trim() === "" || pos === "Unspecified" || pos === "None" || pos === "Unassigned") {
     return "Not recorded";
   }
   return pos;
 }
 
-export type PositionCategory = "GK" | "DEF" | "MID" | "FWD" | "UNRECORDED";
+export type PositionCategory = PositionCode | "UNRECORDED";
 
 export function getPositionCategory(position?: string | null): PositionCategory {
-  if (!position || position === "Unspecified" || position === "None" || position === "Not recorded") {
-    return "UNRECORDED";
-  }
-  const p = position.toLowerCase();
-  if (p.includes("goalkeeper")) return "GK";
-  if (p.includes("back") || p.includes("defender") || p.includes("center back") || p.includes("wing back")) {
-    return "DEF";
-  }
-  if (p.includes("midfield") || p.includes("wing") && !p.includes("forward")) {
-    return "MID";
-  }
-  if (p.includes("forward") || p.includes("striker") || p.includes("wing")) {
-    return "FWD";
-  }
-  return "MID";
+  return getPositionCode(position);
 }
 
 /**
- * Badge styling for position badges using the dark forest green palette.
+ * Badge styling for position badges using the dark forest green palette with distinct Winger styling.
  */
 export function getPositionBadgeClass(position?: string | null): string {
   const cat = getPositionCategory(position);
@@ -64,6 +60,8 @@ export function getPositionBadgeClass(position?: string | null): string {
       return "bg-[#0b1b24] text-sky-400 border border-sky-500/30";
     case "MID":
       return "bg-[#0c2217] text-emerald-400 border border-emerald-500/30";
+    case "WNG":
+      return "bg-[#201129] text-purple-300 border border-purple-500/40";
     case "FWD":
       return "bg-[#251014] text-rose-400 border border-rose-500/30";
     case "UNRECORDED":

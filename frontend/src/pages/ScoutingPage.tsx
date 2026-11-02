@@ -6,6 +6,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ErrorMessage } from "../components/common/ErrorMessage";
 import { PositionBadge } from "../components/football/PositionBadge";
+import { formatMinutes } from "../lib/utils";
 import { ModalDialog } from "../components/common/ModalDialog";
 import {
   Search,
@@ -277,10 +278,11 @@ export const ScoutingPage: React.FC = () => {
               className="w-full bg-[#080F0B] border border-[#1D3025] rounded p-2 text-xs text-[#E8EDE9] outline-none"
             >
               <option value="">All Positions</option>
-              <option value="Midfielder">Midfielders (CM / DM / AM)</option>
-              <option value="Forward">Forwards & Wingers (CF / W)</option>
-              <option value="Defender">Defenders (CB / FB / WB)</option>
               <option value="Goalkeeper">Goalkeepers (GK)</option>
+              <option value="Defender">Defenders (CB / LB / RB / LWB / RWB)</option>
+              <option value="Midfielder">Midfielders (CDM / CM / CAM / LM / RM)</option>
+              <option value="Winger">Wingers (LW / RW / LWF / RWF)</option>
+              <option value="Forward">Forwards (ST / CF / SS / LF / RF)</option>
             </select>
           </div>
 
@@ -475,10 +477,10 @@ export const ScoutingPage: React.FC = () => {
                       {/* Top Row: Total Minutes & Position */}
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="text-2xl font-black font-mono text-[#E8EDE9] leading-none tabular-nums">
-                            {mins.toLocaleString()} <span className="text-xs font-normal text-[#87958B]">MINS</span>
+                          <div className="text-xl font-black font-mono text-[#E8EDE9] leading-none tabular-nums">
+                            {formatMinutes(player.total_minutes)}
                           </div>
-                          <div className="mt-1">
+                          <div className="mt-1.5">
                             <PositionBadge position={player.primary_position} />
                           </div>
                         </div>
@@ -628,7 +630,7 @@ export const ScoutingPage: React.FC = () => {
                           {player.preferred_foot || "—"}
                         </td>
                         <td className="py-3 px-4 text-right font-bold tabular-nums">
-                          {(player.total_minutes || 0).toLocaleString()} m
+                          {formatMinutes(player.total_minutes)}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">

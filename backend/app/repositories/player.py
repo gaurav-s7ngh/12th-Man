@@ -4,28 +4,52 @@ import uuid
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.core.positions import (
+    CanonicalPositionGroup,
+    POSITION_TO_CANONICAL,
+    normalize_position,
+)
 from app.models.football import Match, Player, PlayerAppearance, PlayerMatchStats, Team
 
 
 def _build_position_clause(position: str):
-    pos_clean = position.strip().lower()
-    if pos_clean in ("midfield", "midfielder", "midfielders", "cm", "dm", "am"):
-        return Player.primary_position.ilike("%Midfield%")
-    elif pos_clean in ("defender", "defenders", "defence", "defense", "cb", "fb", "lb", "rb", "wing back"):
-        return or_(
-            Player.primary_position.ilike("%Back%"),
-            Player.primary_position.ilike("%Defender%"),
-        )
-    elif pos_clean in ("forward", "forwards", "striker", "cf", "winger", "wing", "lw", "rw"):
-        return or_(
-            Player.primary_position.ilike("%Forward%"),
-            Player.primary_position.ilike("%Wing%"),
-            Player.primary_position.ilike("%Striker%"),
-        )
-    elif pos_clean in ("goalkeeper", "goalkeepers", "gk", "keeper"):
-        return Player.primary_position.ilike("%Goalkeeper%")
+    pos_clean = position.strip()
+    norm_group = normalize_position(pos_clean)
+
+    # 1. Check if the user specified an individual position specifically (e.g. "Left Midfield", "LM", "RW")
+    individual_matches = [
+        sb_name for sb_name, canonical in POSITION_TO_CANONICAL.items()
+        if (pos_clean.lower() == sb_name.lower() or pos_clean.upper() == sb_name.upper()) and len(sb_name) > 3
+    ]
+    if len(individual_matches) == 1 and pos_clean.upper() in ("LM", "RM", "LW", "RW", "GK", "CB", "LB", "RB", "CF", "ST"):
+        return Player.primary_position == individual_matches[0]
+
+    # 2. Match by Canonical Group
+    if norm_group == CanonicalPositionGroup.GOALKEEPER:
+        return Player.primary_position.in_(["Goalkeeper"])
+    elif norm_group == CanonicalPositionGroup.DEFENDER:
+        return Player.primary_position.in_([
+            "Center Back", "Left Center Back", "Right Center Back",
+            "Left Back", "Right Back", "Left Wing Back", "Right Wing Back"
+        ])
+    elif norm_group == CanonicalPositionGroup.MIDFIELDER:
+        return Player.primary_position.in_([
+            "Center Defensive Midfield", "Left Defensive Midfield", "Right Defensive Midfield",
+            "Center Midfield", "Left Center Midfield", "Right Center Midfield",
+            "Center Attacking Midfield", "Left Attacking Midfield", "Right Attacking Midfield",
+            "Left Midfield", "Right Midfield"
+        ])
+    elif norm_group == CanonicalPositionGroup.WINGER:
+        return Player.primary_position.in_([
+            "Left Wing", "Right Wing", "Left Wing Forward", "Right Wing Forward"
+        ])
+    elif norm_group == CanonicalPositionGroup.FORWARD:
+        return Player.primary_position.in_([
+            "Center Forward", "Left Center Forward", "Right Center Forward",
+            "Secondary Striker", "Striker", "Left Forward", "Right Forward"
+        ])
     else:
-        return Player.primary_position.ilike(f"%{position.strip()}%")
+        return Player.primary_position.ilike(f"%{pos_clean}%")
 
 
 def _build_role_clause(role: str):

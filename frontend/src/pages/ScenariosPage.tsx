@@ -4,7 +4,7 @@ import { api } from "../services/api";
 import { PageHeader } from "../components/layout/PageHeader";
 import { SectionHeader } from "../components/layout/SectionHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import { getPositionCategory } from "../lib/utils";
+import { getPositionCategory, type PositionCategory } from "../lib/utils";
 import {
   Shield,
   Sliders,
@@ -48,7 +48,7 @@ export const ScenariosPage: React.FC = () => {
 
   // Calculate before & after positional depth
   const beforeDepth = useMemo(() => {
-    const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0, UNRECORDED: 0 };
+    const counts: Record<PositionCategory, number> = { GK: 0, DEF: 0, MID: 0, WNG: 0, FWD: 0, UNRECORDED: 0 };
     squad.forEach((p) => {
       counts[getPositionCategory(p.primary_position)]++;
     });
@@ -170,7 +170,7 @@ export const ScenariosPage: React.FC = () => {
           />
 
           <div className="space-y-2.5 mt-3">
-            {(["GK", "DEF", "MID", "FWD", "UNRECORDED"] as const).map((cat) => (
+            {(["GK", "DEF", "MID", "WNG", "FWD", "UNRECORDED"] as const).map((cat) => (
               <div
                 key={cat}
                 className="p-2.5 rounded bg-[#080F0B] border border-[#1D3025] flex items-center justify-between"
@@ -192,7 +192,7 @@ export const ScenariosPage: React.FC = () => {
           />
 
           <div className="space-y-2.5 mt-3">
-            {(["GK", "DEF", "MID", "FWD", "UNRECORDED"] as const).map((cat) => {
+            {(["GK", "DEF", "MID", "WNG", "FWD", "UNRECORDED"] as const).map((cat) => {
               const diff = afterDepth[cat] - beforeDepth[cat];
               return (
                 <div
